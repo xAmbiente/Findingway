@@ -15,7 +15,7 @@ type Config struct {
 }
 
 func main() {
-	discordToken := "MTQ4NTg2MTUwNDg1MDA3MTU3Mg.Gg1-Nn.jsRFIXCtBLecJ9Jn1Q8IoQx7H4BExifOU69JXw"
+	discordToken := ""
 
 	// Load channels from config.yaml
 	configData, err := os.ReadFile("config.yaml")
