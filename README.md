@@ -44,7 +44,7 @@ A Discord bot that scrapes [XIVPF](https://xivpf.com) for Final Fantasy XIV Part
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Veraticus/findingway.git
+git clone https://github.com/xambiente/findingway.git
 cd findingway
 ```
 
