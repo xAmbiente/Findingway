@@ -1,0 +1,17 @@
+channels:
+  - id: "1485865920273580063"
+    name: "Test"
+    duty: "The Weapon's Refrain (Ultimate)"
+    dataCentres: [Light]
+  - id: "1485880001608941688"
+    name: "Ucob"
+    duty: "The Unending Coil of Bahamut (Ultimate)"
+    dataCentres: [Light]
+  - id: "1485880012858195988"
+    name: "Tea"
+    duty: "The Epic of Alexander (Ultimate)"
+    dataCentres: [Light]
+  - id: "1485880040636813383"
+    name: "fru"
+    duty: "Futures Rewritten (Ultimate)"
+    dataCentres: [Light]
