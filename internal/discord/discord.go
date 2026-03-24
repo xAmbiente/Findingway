@@ -10,10 +10,9 @@ import (
 )
 
 type Discord struct {
-	Token string
-
+	Token    string
+	Channels []*Channel
 	Session  *discordgo.Session
-	Channels []*Channel `yaml:"channels"`
 }
 
 type Channel struct {
@@ -22,168 +21,253 @@ type Channel struct {
 	Duty        string   `yaml:"duty"`
 	DataCentres []string `yaml:"dataCentres"`
 	MessageID   string   `yaml:"messageID"`
+	Enabled     bool     `yaml:"enabled"`
 }
 
+// Start the Discord session
 func (d *Discord) Start() error {
 	s, err := discordgo.New("Bot " + d.Token)
 	if err != nil {
-		return fmt.Errorf("Could not start Discord: %v", err)
+		return err
 	}
+
 	s.ShouldRetryOnRateLimit = false
 
-	err = s.Open()
-	if err != nil {
-		return fmt.Errorf("Could not open Discord session: %v", err)
+	if err := s.Open(); err != nil {
+		return err
 	}
 
 	d.Session = s
 
-	// For each channel: delete ALL existing bot messages, then send one
-	// fresh placeholder so we always have exactly one message to edit.
 	for _, c := range d.Channels {
+		if !c.Enabled {
+			continue
+		}
+
 		if err := d.resetChannelMessage(c); err != nil {
-			fmt.Printf("Warning: could not reset channel %s: %v\n", c.ID, err)
+			fmt.Printf("Reset failed for %s: %v\n", c.ID, err)
 		}
 	}
 
 	return nil
 }
 
-// resetChannelMessage deletes every bot message in the channel and sends a
-// single placeholder embed. The new message ID is stored on the Channel so
-// every subsequent cycle just edits it.
+// resetChannelMessage deletes old bot messages and sends a fresh "Loading" embed
 func (d *Discord) resetChannelMessage(channel *Channel) error {
 	botUser, err := d.Session.User("@me")
 	if err != nil {
-		return fmt.Errorf("could not get bot user: %w", err)
+		return err
 	}
 
 	messages, err := d.Session.ChannelMessages(channel.ID, 100, "", "", "")
 	if err != nil {
-		return fmt.Errorf("could not list messages: %w", err)
+		return err
 	}
 
-	var botMsgIDs []string
+	var botMsgs []string
 	for _, m := range messages {
 		if m.Author.ID == botUser.ID {
-			botMsgIDs = append(botMsgIDs, m.ID)
+			botMsgs = append(botMsgs, m.ID)
 		}
 	}
 
-	if len(botMsgIDs) >= 2 {
-		if err := d.Session.ChannelMessagesBulkDelete(channel.ID, botMsgIDs); err != nil {
-			fmt.Printf("Bulk delete failed, falling back to individual deletes: %v\n", err)
-			for _, id := range botMsgIDs {
-				_ = d.Session.ChannelMessageDelete(channel.ID, id)
-			}
-		}
-	} else if len(botMsgIDs) == 1 {
-		if err := d.Session.ChannelMessageDelete(channel.ID, botMsgIDs[0]); err != nil {
-			fmt.Printf("Could not delete single bot message: %v\n", err)
+	if len(botMsgs) > 0 {
+		if len(botMsgs) > 1 {
+			_ = d.Session.ChannelMessagesBulkDelete(channel.ID, botMsgs)
+		} else {
+			_ = d.Session.ChannelMessageDelete(channel.ID, botMsgs[0])
 		}
 	}
 
-	placeholder := &discordgo.MessageEmbed{
+	msg, err := d.Session.ChannelMessageSendEmbed(channel.ID, &discordgo.MessageEmbed{
 		Title:       "Loading listings...",
-		Description: "Please wait.",
+		Description: "Please wait...",
 		Color:       0x6600ff,
-	}
-	msg, err := d.Session.ChannelMessageSendComplex(channel.ID, &discordgo.MessageSend{
-		Embeds: []*discordgo.MessageEmbed{placeholder},
 	})
 	if err != nil {
-		return fmt.Errorf("could not send placeholder message: %w", err)
+		return err
 	}
 
 	channel.MessageID = msg.ID
-	fmt.Printf("Channel %s initialised with message ID %s\n", channel.ID, msg.ID)
 	return nil
 }
 
-func (d *Discord) PostListings(channelId string, listings *ffxiv.Listings, duty string, dataCentre string) error {
-	scopedListings := listings.ForDutyAndDataCentre(duty, dataCentre)
+// --- MAIN METHODS USED BY BOT ---
 
-	mostRecent, err := scopedListings.MostRecentUpdated()
-	if err != nil {
-		return fmt.Errorf("Could not find most recently updated duty: %w", err)
+func (d *Discord) GetLastMessageID(channelID, dc string) string {
+	ch := d.getChannel(channelID)
+	if ch != nil {
+		return ch.MessageID
 	}
-	if mostRecent != nil {
-		mostRecentUpdated, err := mostRecent.UpdatedAt()
-		if err != nil {
-			return fmt.Errorf("Could not find most recently updatedAt: %w", err)
-		}
-		if mostRecentUpdated.After(time.Now().Add(-4 * time.Minute)) {
-			scopedListings, err = scopedListings.UpdatedWithinLast(4 * time.Minute)
-			if err != nil {
-				return fmt.Errorf("Could not find most recent listings: %w", err)
-			}
-		}
+	return ""
+}
+
+func (d *Discord) UpdateEmbedMessage(channelID, messageID string, listings *ffxiv.Listings, duty string, dc string) error {
+	ch := d.getChannel(channelID)
+	if ch == nil {
+		return fmt.Errorf("channel not found")
 	}
+
+	scoped := listings.ForDutyAndDataCentre(duty, dc)
 
 	embed := &discordgo.MessageEmbed{
-		Title:       fmt.Sprintf("%s PFs (%v)", duty, dataCentre),
-		Description: fmt.Sprintf("Found %v listings %v", len(scopedListings.Listings), fmt.Sprintf("<t:%v:R>", time.Now().Unix())),
-		Color:       0x6600ff,
+		Title: fmt.Sprintf("%s PFs (%s)", duty, dc),
+		Description: fmt.Sprintf(
+			"Found %d listings • <t:%d:R>",
+			len(scoped.Listings),
+			time.Now().Unix(),
+		),
+		Color: 0x6600ff,
 		Footer: &discordgo.MessageEmbedFooter{
 			Text: strings.Repeat("\u3000", 20),
 		},
 	}
 
-	for _, listing := range scopedListings.Listings {
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   listing.Creator,
-			Value:  listing.PartyDisplay(),
-			Inline: true,
-		})
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   listing.GetTags(),
-			Value:  listing.GetDescription(),
-			Inline: true,
-		})
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   listing.GetExpires(),
-			Value:  listing.GetUpdated(),
-			Inline: true,
-		})
-	}
-
-	return d.editMessage(channelId, embed)
-}
-
-// editMessage edits the channel's one persistent message. If the message was
-// somehow deleted externally, it re-runs the full reset so we get back to a
-// clean single-message state.
-func (d *Discord) editMessage(channelId string, embed *discordgo.MessageEmbed) error {
-	var channel *Channel
-	for _, c := range d.Channels {
-		if c.ID == channelId {
-			channel = c
+	fieldCount := 0
+	for _, l := range scoped.Listings {
+		if fieldCount >= 24 {
 			break
 		}
-	}
-	if channel == nil {
-		return fmt.Errorf("channel %s not found in configuration", channelId)
+		embed.Fields = append(embed.Fields,
+			&discordgo.MessageEmbedField{
+				Name:   l.Creator,
+				Value:  l.PartyDisplay(),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   l.GetTags(),
+				Value:  l.GetDescription(),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   l.GetExpires(),
+				Value:  l.GetUpdated(),
+				Inline: true,
+			},
+		)
+		fieldCount += 3
 	}
 
+	return d.editMessage(ch, embed)
+}
+
+func (d *Discord) PostEmbedMessage(channelID string, listings *ffxiv.Listings, duty string, dc string) error {
+	ch := d.getChannel(channelID)
+	if ch == nil {
+		return fmt.Errorf("channel not found")
+	}
+
+	scoped := listings.ForDutyAndDataCentre(duty, dc)
+
+	embed := &discordgo.MessageEmbed{
+		Title: fmt.Sprintf("%s PFs (%s)", duty, dc),
+		Description: fmt.Sprintf(
+			"Found %d listings • <t:%d:R>",
+			len(scoped.Listings),
+			time.Now().Unix(),
+		),
+		Color: 0x6600ff,
+		Footer: &discordgo.MessageEmbedFooter{
+			Text: strings.Repeat("\u3000", 20),
+		},
+	}
+
+	fieldCount := 0
+	for _, l := range scoped.Listings {
+		if fieldCount >= 24 {
+			break
+		}
+		embed.Fields = append(embed.Fields,
+			&discordgo.MessageEmbedField{
+				Name:   l.Creator,
+				Value:  l.PartyDisplay(),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   l.GetTags(),
+				Value:  l.GetDescription(),
+				Inline: true,
+			},
+			&discordgo.MessageEmbedField{
+				Name:   l.GetExpires(),
+				Value:  l.GetUpdated(),
+				Inline: true,
+			},
+		)
+		fieldCount += 3
+	}
+
+	return d.editMessage(ch, embed)
+}
+
+// --- HELPERS ---
+
+func (d *Discord) editMessage(channel *Channel, embed *discordgo.MessageEmbed) error {
 	if channel.MessageID == "" {
-		fmt.Println("No message ID set, re-initialising channel...")
 		if err := d.resetChannelMessage(channel); err != nil {
-			return fmt.Errorf("could not re-initialise channel: %w", err)
+			return err
 		}
 	}
 
-	_, err := d.Session.ChannelMessageEditEmbed(channelId, channel.MessageID, embed)
+	_, err := d.Session.ChannelMessageEditEmbed(channel.ID, channel.MessageID, embed)
 	if err != nil {
-		fmt.Printf("Edit failed (message deleted?), re-initialising: %v\n", err)
-		if resetErr := d.resetChannelMessage(channel); resetErr != nil {
-			return fmt.Errorf("could not re-initialise channel after edit failure: %w", resetErr)
+		// message deleted externally → recreate
+		if err := d.resetChannelMessage(channel); err != nil {
+			return err
 		}
-		_, err = d.Session.ChannelMessageEditEmbed(channelId, channel.MessageID, embed)
+		_, err = d.Session.ChannelMessageEditEmbed(channel.ID, channel.MessageID, embed)
 		if err != nil {
-			return fmt.Errorf("could not edit message after re-initialise: %w", err)
+			return err
 		}
 	}
 
-	fmt.Printf("Edited message %s in channel %s\n", channel.MessageID, channelId)
 	return nil
+}
+
+func (d *Discord) GetChannelByName(name string) *Channel {
+	for _, c := range d.Channels {
+		if c.Name == name {
+			return c
+		}
+	}
+	return nil
+}
+
+func (d *Discord) ResetChannelMessage(ch *Channel) error {
+	ch.MessageID = ""
+	return nil
+}
+
+// PostListings is now fully compatible with ffxiv.Listings
+func (d *Discord) PostListings(channelID string, listings *ffxiv.Listings, duty string, dc string) error {
+	return d.PostEmbedMessage(channelID, listings, duty, dc)
+}
+
+func (d *Discord) getChannel(id string) *Channel {
+	for _, c := range d.Channels {
+		if c.ID == id {
+			return c
+		}
+	}
+	return nil
+}
+
+// --- CHANNEL TOGGLE COMMAND HELPERS ---
+
+func (d *Discord) EnableChannel(name string) {
+	for _, c := range d.Channels {
+		if c.Name == name {
+			c.Enabled = true
+			return
+		}
+	}
+}
+
+func (d *Discord) DisableChannel(name string) {
+	for _, c := range d.Channels {
+		if c.Name == name {
+			c.Enabled = false
+			return
+		}
+	}
 }

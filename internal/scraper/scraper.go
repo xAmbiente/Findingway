@@ -5,12 +5,16 @@ import (
 	"strings"
 
 	"github.com/Veraticus/findingway/internal/ffxiv"
-
 	"github.com/gocolly/colly/v2"
 )
 
 type Scraper struct {
-	Url string
+	Url          string
+	LastListings *ffxiv.Listings
+}
+
+func (s *Scraper) LatestListings() *ffxiv.Listings {
+	return s.LastListings
 }
 
 func (s *Scraper) Scrape() (*ffxiv.Listings, error) {
@@ -22,20 +26,17 @@ func (s *Scraper) Scrape() (*ffxiv.Listings, error) {
 	c.OnHTML("#listings.list .listing", func(e *colly.HTMLElement) {
 		listing := &ffxiv.Listing{Party: []*ffxiv.Slot{}}
 
-		// We can unmarshal a fair amount of information
+		// Unmarshal available data
 		e.Unmarshal(listing)
 
-		// Get attributes which are unmarshall-able
 		listing.DataCentre = e.Attr("data-centre")
 		listing.PfCategory = e.Attr("data-pf-category")
 		listing.Id = e.Attr("data-id")
 
-		// Get everything else that isn't easily inferred; first description
 		description := e.ChildText(".left .description")
 		description = strings.TrimSpace(strings.Replace(description, listing.Tags, "", -1))
 		listing.Description = description
 
-		// Then the party list
 		e.ForEach(".party .slot", func(s int, p *colly.HTMLElement) {
 			slot := ffxiv.NewSlot()
 			class := p.Attr("class")
@@ -43,19 +44,15 @@ func (s *Scraper) Scrape() (*ffxiv.Listings, error) {
 			if strings.Contains(class, "dps") {
 				slot.Roles.Roles = append(slot.Roles.Roles, ffxiv.DPS)
 			}
-
 			if strings.Contains(class, "healer") {
 				slot.Roles.Roles = append(slot.Roles.Roles, ffxiv.Healer)
 			}
-
 			if strings.Contains(class, "tank") {
 				slot.Roles.Roles = append(slot.Roles.Roles, ffxiv.Tank)
 			}
-
 			if strings.Contains(class, "empty") {
 				slot.Roles.Roles = append(slot.Roles.Roles, ffxiv.Empty)
 			}
-
 			if strings.Contains(class, "filled") {
 				slot.Filled = true
 				slot.Job = ffxiv.JobFromAbbreviation(p.Attr("title"))
@@ -71,6 +68,9 @@ func (s *Scraper) Scrape() (*ffxiv.Listings, error) {
 	if len(errors) > 0 {
 		return nil, fmt.Errorf("Could not scrape listings: %w", errors[0])
 	}
+
+	// Save last listings
+	s.LastListings = listings
 
 	return listings, nil
 }
