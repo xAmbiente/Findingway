@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -68,18 +69,30 @@ func levelColor(l Level) string {
 
 // Logger writes to console + file.
 type Logger struct {
-	mu      sync.Mutex
-	file    *os.File
-	noColor bool // set true when not a TTY (e.g. Docker)
+	mu       sync.Mutex
+	file     *os.File
+	noColor  bool // set true when not a TTY (e.g. Docker)
+	minLevel Level
 }
 
 var std *Logger
 
 // Init creates the shared logger. Call once from main().
 // logPath may be "" to skip file logging.
+// LOG_LEVEL controls the minimum emitted level (DEBUG, INFO, WARN, ERROR, FATAL).
+// Defaults to INFO when unset or invalid.
 func Init(logPath string) error {
 	l := &Logger{
-		noColor: !isTTY(),
+		noColor:  !isTTY(),
+		minLevel: INFO,
+	}
+
+	if levelRaw := strings.TrimSpace(os.Getenv("LOG_LEVEL")); levelRaw != "" {
+		if parsed, ok := ParseLevel(levelRaw); ok {
+			l.minLevel = parsed
+		} else {
+			_, _ = fmt.Fprintf(os.Stderr, "WARN: invalid LOG_LEVEL %q, defaulting to %s\n", levelRaw, l.minLevel.String())
+		}
 	}
 
 	if logPath != "" {
@@ -95,6 +108,24 @@ func Init(logPath string) error {
 
 	std = l
 	return nil
+}
+
+// ParseLevel converts a LOG_LEVEL string into a logger level.
+func ParseLevel(raw string) (Level, bool) {
+	switch strings.ToUpper(strings.TrimSpace(raw)) {
+	case "DEBUG":
+		return DEBUG, true
+	case "INFO":
+		return INFO, true
+	case "WARN", "WARNING":
+		return WARN, true
+	case "ERROR":
+		return ERROR, true
+	case "FATAL":
+		return FATAL, true
+	default:
+		return INFO, false
+	}
 }
 
 // Close flushes and closes the log file.
@@ -113,6 +144,10 @@ func isTTY() bool {
 }
 
 func (l *Logger) log(level Level, format string, args ...any) {
+	if level < l.minLevel {
+		return
+	}
+
 	msg := fmt.Sprintf(format, args...)
 	ts := time.Now().Format("2006-01-02 15:04:05")
 
