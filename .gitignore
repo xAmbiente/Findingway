@@ -6,3 +6,7 @@ findingway
 /.vs/slnx.sqlite
 /.vs/Findingway2.slnx/FileContentIndex
 /.vs
+/bat.bat
+/config.yaml
+/findingway.db
+/findingway.exe
