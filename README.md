@@ -1,4 +1,4 @@
-# Findingway
+# Findingway [![Continuous Deployment](https://github.com/xAmbiente/Findingway/actions/workflows/continuous-deployment.yml/badge.svg)](https://github.com/xAmbiente/Findingway/actions/workflows/continuous-deployment.yml)
 
 A Discord bot that scrapes [XIVPF](https://xivpf.com) for Final Fantasy XIV Party Finder listings and posts them into dedicated Discord channels — one embed per channel, updated in place every 3 minutes.
 
