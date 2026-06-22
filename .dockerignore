@@ -1,5 +1,7 @@
-# flyctl launch added from .gitignore
-**/coverage.out
-**/trappingway
-!**/trappingway
-fly.toml
+.git
+.vs
+*.exe
+data/
+logs/
+coverage.out
+*.db

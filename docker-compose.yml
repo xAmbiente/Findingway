@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  findingway:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DISCORD_TOKEN=${DISCORD_TOKEN}      # set in .env or shell
+      - CONFIG_PATH=/findingway/config.yaml
+      - DB_PATH=/findingway/data/findingway.db
+      - LOG_PATH=/findingway/logs/findingway.log
+    volumes:
+      - ./data:/findingway/data             # SQLite database
+      - ./logs:/findingway/logs             # log files
+      - ./config.yaml:/findingway/config.yaml:ro  # hot-reload friendly
