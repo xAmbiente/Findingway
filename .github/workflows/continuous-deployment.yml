@@ -19,6 +19,10 @@ concurrency:
   group: ${{ github.workspace }}|${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   build-and-push-image:
     name: Publish Findingway image to container registries
