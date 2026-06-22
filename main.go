@@ -10,6 +10,7 @@ import (
 
 	"github.com/Veraticus/findingway/internal/discord"
 	"github.com/Veraticus/findingway/internal/scraper"
+	"github.com/Veraticus/findingway/internal/store"
 	"github.com/bwmarrin/discordgo"
 	"gopkg.in/yaml.v3"
 )
@@ -21,25 +22,34 @@ type Config struct {
 type Bot struct {
 	discordToken string
 	configPath   string
+	dbPath       string
 	discord      *discord.Discord
 	scraper      *scraper.Scraper
+	store        *store.Store
 	cfg          Config
 	dg           *discordgo.Session
-
-	waitTime time.Duration
+	waitTime     time.Duration
 }
 
-func NewBot(discordToken, configPath string) (*Bot, error) {
+func NewBot(discordToken, configPath, dbPath string) (*Bot, error) {
 	fmt.Println("[LOG] Initializing bot")
+
 	dg, err := discordgo.New("Bot " + discordToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Discord session: %w", err)
+		return nil, fmt.Errorf("create discord session: %w", err)
+	}
+
+	db, err := store.New(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("open store: %w", err)
 	}
 
 	return &Bot{
 		discordToken: discordToken,
 		configPath:   configPath,
+		dbPath:       dbPath,
 		scraper:      &scraper.Scraper{Url: "https://xivpf.com"},
+		store:        db,
 		dg:           dg,
 		waitTime:     3 * time.Minute,
 	}, nil
@@ -49,12 +59,12 @@ func (b *Bot) LoadConfig() error {
 	fmt.Println("[LOG] Loading config from", b.configPath)
 	data, err := os.ReadFile(b.configPath)
 	if err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
+		return fmt.Errorf("read config: %w", err)
 	}
 
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
-		return fmt.Errorf("failed to parse config file: %w", err)
+		return fmt.Errorf("parse config: %w", err)
 	}
 
 	b.cfg = cfg
@@ -67,10 +77,11 @@ func (b *Bot) InitializeDiscord() error {
 	d := &discord.Discord{
 		Token:    b.discordToken,
 		Channels: b.cfg.Channels,
+		Store:    b.store,
 	}
 
 	if err := d.Start(); err != nil {
-		return fmt.Errorf("failed to start Discord session: %w", err)
+		return fmt.Errorf("start discord: %w", err)
 	}
 
 	b.discord = d
@@ -79,9 +90,12 @@ func (b *Bot) InitializeDiscord() error {
 }
 
 func (b *Bot) GracefulShutdown() {
-	fmt.Println("[LOG] Shutting down bot")
-	if b.discord.Session != nil {
+	fmt.Println("[LOG] Shutting down")
+	if b.discord != nil && b.discord.Session != nil {
 		b.discord.Session.Close()
+	}
+	if b.store != nil {
+		b.store.Close()
 	}
 	fmt.Println("[LOG] Shutdown complete")
 }
@@ -97,7 +111,6 @@ func (b *Bot) StartScrapingLoop() {
 			continue
 		}
 
-		// Store latest listings
 		b.scraper.LastListings = listings
 
 		if len(listings.Listings) == 0 {
@@ -107,22 +120,22 @@ func (b *Bot) StartScrapingLoop() {
 		}
 
 		for _, c := range b.discord.Channels {
-			if c == nil {
+			if c == nil || !c.Enabled {
 				continue
 			}
 
 			for _, dc := range c.DataCentres {
 				msgID := b.discord.GetLastMessageID(c.ID, dc)
+				var err error
 				if msgID != "" {
-					fmt.Println("[LOG] Updating embed for", c.Name, dc)
+					fmt.Printf("[LOG] Updating embed for %s (%s)\n", c.Name, dc)
 					err = b.discord.UpdateEmbedMessage(c.ID, msgID, listings, c.Duty, dc)
 				} else {
-					fmt.Println("[LOG] Posting new embed for", c.Name, dc)
+					fmt.Printf("[LOG] Posting new embed for %s (%s)\n", c.Name, dc)
 					err = b.discord.PostEmbedMessage(c.ID, listings, c.Duty, dc)
 				}
-
 				if err != nil {
-					fmt.Println("[ERROR] Discord error:", err)
+					fmt.Printf("[ERROR] Discord error for %s (%s): %v\n", c.Name, dc, err)
 				}
 			}
 		}
@@ -137,46 +150,48 @@ func (b *Bot) MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	prefix := "*"
+	const prefix = "*"
 	content := m.Content
-	fmt.Println("[LOG] Received message:", content, "from", m.Author.Username)
+	fmt.Printf("[LOG] Message from %s: %s\n", m.Author.Username, content)
 
 	switch {
 	case content == prefix+"reload":
-		fmt.Println("[LOG] Reload command triggered")
 		if err := b.LoadConfig(); err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Reload failed")
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Reload failed: %v", err))
 			fmt.Println("[ERROR] Reload failed:", err)
 		} else {
-			s.ChannelMessageSend(m.ChannelID, "Reloaded")
+			b.discord.Channels = b.cfg.Channels
+			s.ChannelMessageSend(m.ChannelID, "Config reloaded")
 		}
 
 	case content == prefix+"status":
-		msg := fmt.Sprintf("Channels: %d\nScrape interval: %s", len(b.discord.Channels), b.waitTime)
 		embed := &discordgo.MessageEmbed{
-			Title:       "Bot Status",
-			Description: msg,
-			Color:       0x00ff99,
+			Title: "Bot Status",
+			Description: fmt.Sprintf(
+				"Channels: %d\nScrape interval: %s\nDB: %s",
+				len(b.discord.Channels), b.waitTime, b.dbPath,
+			),
+			Color: 0x00ff99,
 		}
 		s.ChannelMessageSendEmbed(m.ChannelID, embed)
 
 	case content == prefix+"help":
 		embed := &discordgo.MessageEmbed{
 			Title: "Commands",
-			Description: `
-!reload                     → Reload config
-!status                     → Show bot status
-!scrape                     → Start scrape loop
-!interval <time>            → Set scraping interval (e.g., 2m)
-!enable <channel>           → Enable a channel
-!disable <channel>          → Disable a channel
-!toggle <channel>           → Toggle enable/disable
-!channels                   → List all configured channels
-!lastmsg <channel>          → Show last bot message ID for a channel
-!resetmsg <channel>         → Reset the embed message for a channel
-!forcepost <channel>        → Force post listings immediately
-!help                       → Show this help
-`,
+			Description: "```\n" +
+				"*reload              Reload config from disk\n" +
+				"*status              Show bot status\n" +
+				"*scrape              Trigger immediate scrape\n" +
+				"*interval <dur>      Set scrape interval (e.g. 2m)\n" +
+				"*enable <name>       Enable a channel\n" +
+				"*disable <name>      Disable a channel\n" +
+				"*toggle <name>       Toggle enable/disable\n" +
+				"*channels            List all configured channels\n" +
+				"*lastmsg <name>      Show last bot message ID\n" +
+				"*resetmsg <name>     Reset embed message for a channel\n" +
+				"*forcepost <name>    Force-post listings immediately\n" +
+				"*help                Show this help\n" +
+				"```",
 			Color: 0xff9900,
 		}
 		s.ChannelMessageSendEmbed(m.ChannelID, embed)
@@ -184,14 +199,12 @@ func (b *Bot) MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	case strings.HasPrefix(content, prefix+"interval "):
 		val := strings.TrimPrefix(content, prefix+"interval ")
 		d, err := time.ParseDuration(val)
-		if err != nil {
-			s.ChannelMessageSend(m.ChannelID, "Invalid duration")
-			fmt.Println("[ERROR] Invalid interval:", val)
+		if err != nil || d < 30*time.Second {
+			s.ChannelMessageSend(m.ChannelID, "Invalid duration (minimum 30s)")
 			return
 		}
 		b.waitTime = d
-		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Scrape interval updated to %s", d))
-		fmt.Println("[LOG] Interval updated to", d)
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Scrape interval set to %s", d))
 
 	case content == prefix+"scrape":
 		fmt.Println("[LOG] Manual scrape triggered")
@@ -202,116 +215,129 @@ func (b *Bot) MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		name := strings.TrimPrefix(content, prefix+"enable ")
 		b.discord.EnableChannel(name)
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Channel **%s** enabled", name))
-		fmt.Println("[LOG] Channel enabled:", name)
 
 	case strings.HasPrefix(content, prefix+"disable "):
 		name := strings.TrimPrefix(content, prefix+"disable ")
 		b.discord.DisableChannel(name)
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Channel **%s** disabled", name))
-		fmt.Println("[LOG] Channel disabled:", name)
 
 	case strings.HasPrefix(content, prefix+"toggle "):
 		name := strings.TrimPrefix(content, prefix+"toggle ")
 		ch := b.discord.GetChannelByName(name)
-		if ch != nil {
-			if ch.Enabled {
-				b.discord.DisableChannel(name)
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Channel **%s** disabled", name))
-				fmt.Println("[LOG] Channel toggled off:", name)
-			} else {
-				b.discord.EnableChannel(name)
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Channel **%s** enabled", name))
-				fmt.Println("[LOG] Channel toggled on:", name)
-			}
-		} else {
+		if ch == nil {
 			s.ChannelMessageSend(m.ChannelID, "Channel not found")
-			fmt.Println("[WARN] Channel not found:", name)
+			return
+		}
+		if ch.Enabled {
+			b.discord.DisableChannel(name)
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Channel **%s** disabled", name))
+		} else {
+			b.discord.EnableChannel(name)
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Channel **%s** enabled", name))
 		}
 
 	case content == prefix+"channels":
-		var list []string
+		var lines []string
 		for _, c := range b.discord.Channels {
 			status := "disabled"
 			if c.Enabled {
 				status = "enabled"
 			}
-			list = append(list, fmt.Sprintf("%s → %s", c.Name, status))
+			lines = append(lines, fmt.Sprintf("• **%s** — %s (%s)", c.Name, status, c.Duty))
 		}
-		s.ChannelMessageSend(m.ChannelID, "Configured channels:\n"+strings.Join(list, "\n"))
-		fmt.Println("[LOG] Listed all channels")
+		if len(lines) == 0 {
+			s.ChannelMessageSend(m.ChannelID, "No channels configured")
+			return
+		}
+		s.ChannelMessageSend(m.ChannelID, "Configured channels:\n"+strings.Join(lines, "\n"))
 
 	case strings.HasPrefix(content, prefix+"lastmsg "):
 		name := strings.TrimPrefix(content, prefix+"lastmsg ")
 		ch := b.discord.GetChannelByName(name)
-		if ch != nil {
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Last message ID for **%s**: %s", name, ch.MessageID))
-			fmt.Println("[LOG] Last message for", name, "is", ch.MessageID)
-		} else {
+		if ch == nil {
 			s.ChannelMessageSend(m.ChannelID, "Channel not found")
-			fmt.Println("[WARN] Channel not found:", name)
+			return
+		}
+		if ch.MessageID == "" {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("No stored message for **%s**", name))
+		} else {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Last message ID for **%s**: `%s`", name, ch.MessageID))
 		}
 
 	case strings.HasPrefix(content, prefix+"resetmsg "):
 		name := strings.TrimPrefix(content, prefix+"resetmsg ")
 		ch := b.discord.GetChannelByName(name)
-		if ch != nil {
-			if err := b.discord.ResetChannelMessage(ch); err != nil {
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Failed to reset message: %v", err))
-				fmt.Println("[ERROR] Reset message failed for", name, err)
-			} else {
-				s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Message for **%s** reset", name))
-				fmt.Println("[LOG] Message reset for channel:", name)
-			}
-		} else {
+		if ch == nil {
 			s.ChannelMessageSend(m.ChannelID, "Channel not found")
-			fmt.Println("[WARN] Channel not found:", name)
+			return
+		}
+		if err := b.discord.ResetChannelMessage(ch); err != nil {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Reset failed: %v", err))
+		} else {
+			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Message for **%s** reset", name))
 		}
 
 	case strings.HasPrefix(content, prefix+"forcepost "):
 		name := strings.TrimPrefix(content, prefix+"forcepost ")
 		ch := b.discord.GetChannelByName(name)
-		if ch != nil {
-			fmt.Println("[LOG] Force post triggered for channel:", name)
-			go func() {
-				for _, dc := range ch.DataCentres {
-					_ = b.discord.PostListings(ch.ID, b.scraper.LatestListings(), ch.Duty, dc)
-				}
-			}()
-			s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Force posted listings for **%s**", name))
-		} else {
+		if ch == nil {
 			s.ChannelMessageSend(m.ChannelID, "Channel not found")
-			fmt.Println("[WARN] Channel not found for forcepost:", name)
+			return
 		}
+		latest := b.scraper.LatestListings()
+		if latest == nil {
+			s.ChannelMessageSend(m.ChannelID, "No listings cached yet — run *scrape first")
+			return
+		}
+		go func() {
+			for _, dc := range ch.DataCentres {
+				if err := b.discord.PostListings(ch.ID, latest, ch.Duty, dc); err != nil {
+					fmt.Printf("[ERROR] forcepost for %s (%s): %v\n", name, dc, err)
+				}
+			}
+		}()
+		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("Force-posting listings for **%s**", name))
 	}
 }
 
 func main() {
-	token := ""
-	config := "config.yaml"
-
-	bot, err := NewBot(token, config)
-	if err != nil {
-		panic(err)
+	token := os.Getenv("DISCORD_TOKEN")
+	if token == "" {
+		fmt.Fprintln(os.Stderr, "[FATAL] DISCORD_TOKEN env var not set")
+		os.Exit(1)
 	}
 
-	err = bot.dg.Open()
+	configPath := "config.yaml"
+	if p := os.Getenv("CONFIG_PATH"); p != "" {
+		configPath = p
+	}
+
+	dbPath := "findingway.db"
+	if p := os.Getenv("DB_PATH"); p != "" {
+		dbPath = p
+	}
+
+	bot, err := NewBot(token, configPath, dbPath)
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, "[FATAL]", err)
+		os.Exit(1)
+	}
+
+	if err := bot.LoadConfig(); err != nil {
+		fmt.Fprintln(os.Stderr, "[FATAL]", err)
+		os.Exit(1)
+	}
+
+	if err := bot.InitializeDiscord(); err != nil {
+		fmt.Fprintln(os.Stderr, "[FATAL]", err)
+		os.Exit(1)
 	}
 
 	bot.dg.AddHandler(bot.MessageCreate)
 
-	if err := bot.LoadConfig(); err != nil {
-		panic(err)
-	}
-
-	if err := bot.InitializeDiscord(); err != nil {
-		panic(err)
-	}
-
 	go bot.StartScrapingLoop()
 
-	fmt.Println("[LOG] Bot is running, press CTRL+C to exit")
+	fmt.Println("[LOG] Bot running — press CTRL+C to exit")
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit

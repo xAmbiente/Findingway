@@ -1,20 +1,22 @@
-
-
 @echo off
-set DISCORD_TOKEN=MTQ4NTg2MTUwNDg1MDA3MTU3Mg.Gg1-Nn.jsRFIXCtBLecJ9Jn1Q8IoQx7H4BExifOU69JXw
-set DISCORD_CHANNEL_ID=1485865920273580063
-set DATA_CENTRE=Light
-set DUTY="The Weapon's Refrain (Ultimate)"
+:: Findingway Bot - Windows launcher
+:: Set your Discord token here or in your environment
+if "%DISCORD_TOKEN%"=="" (
+    echo [ERROR] DISCORD_TOKEN is not set. Set it as an environment variable or add it here.
+    exit /b 1
+)
 
-:: Log-Datei für Fehlerprotokollierung
+:: Optional overrides
+:: set CONFIG_PATH=config.yaml
+:: set DB_PATH=findingway.db
+
 set LOGFILE=findingway_log.txt
 echo Starting FindingWay Bot... > %LOGFILE%
+echo Started at %DATE% %TIME% >> %LOGFILE%
 
-start "" /min .\findingway.exe >> %LOGFILE% 2>&1
-echo Bot started at %TIME% >> %LOGFILE%
+start "FindingWay" /min .\findingway.exe >> %LOGFILE% 2>&1
 
-:: Optional: Bei einem Fehler das Protokoll anzeigen
 if %ERRORLEVEL% NEQ 0 (
-    echo Error occurred during execution, check the log for details.
+    echo Error starting bot - check %LOGFILE% for details.
     type %LOGFILE%
-).
+)
