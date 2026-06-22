@@ -8,6 +8,10 @@ build:
 build-linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o findingway .
 
+## Build a MacOS arm64 binary (matches development machine)
+build-macos:
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s" -o findingway .
+
 ## Run tests with race detector
 test:
 	go test ./... -race -covermode=atomic -coverprofile=coverage.out
