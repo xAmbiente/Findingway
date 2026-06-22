@@ -19,6 +19,14 @@ type Discord struct {
 	Store    *store.Store
 }
 
+// Close gracefully shuts down the internal discord session if open.
+func (d *Discord) Close() error {
+	if d == nil || d.Session == nil {
+		return nil
+	}
+	return d.Session.Close()
+}
+
 // Channel mirrors one entry in config.yaml, augmented with runtime state.
 type Channel struct {
 	Name        string   `yaml:"name"`

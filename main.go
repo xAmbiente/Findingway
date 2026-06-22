@@ -11,6 +11,7 @@ import (
 	"github.com/Veraticus/findingway/internal/discord"
 	"github.com/Veraticus/findingway/internal/logger"
 	"github.com/Veraticus/findingway/internal/scraper"
+	"github.com/Veraticus/findingway/internal/ffxiv"
 	"github.com/Veraticus/findingway/internal/store"
 	"github.com/bwmarrin/discordgo"
 	"gopkg.in/yaml.v3"
@@ -34,6 +35,10 @@ type Bot struct {
 	cfg          Config
 	dg           *discordgo.Session
 	waitTime     time.Duration
+	Slash        *discord.SlashCommandManager
+
+	lastSnapshot map[string]map[string]map[string]*ffxiv.Listing
+	// channelID -> dataCentre -> listingID -> listing
 }
 
 func NewBot(discordToken, configPath, dbPath string) (*Bot, error) {
@@ -57,6 +62,7 @@ func NewBot(discordToken, configPath, dbPath string) (*Bot, error) {
 		store:        db,
 		dg:           dg,
 		waitTime:     3 * time.Minute,
+		lastSnapshot: make(map[string]map[string]map[string]*ffxiv.Listing),
 	}, nil
 }
 
@@ -79,28 +85,51 @@ func (b *Bot) LoadConfig() error {
 
 func (b *Bot) InitializeDiscord() error {
 	logger.Info("connecting to Discord…")
+
 	d := &discord.Discord{
 		Token:    b.discordToken,
 		Channels: b.cfg.Channels,
 		Store:    b.store,
 	}
+
 	if err := d.Start(); err != nil {
 		return fmt.Errorf("start discord: %w", err)
 	}
+
 	b.discord = d
+
+	// Use the live session from the discord wrapper for handlers
+	b.dg = d.Session
+	b.dg.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if b.Slash != nil {
+			b.Slash.HandleInteraction(i)
+		}
+	})
+
 	logger.Info("Discord session ready")
 	return nil
 }
 
-func (b *Bot) GracefulShutdown() {
-	logger.Info("shutting down…")
-	if b.discord != nil && b.discord.Session != nil {
-		b.discord.Session.Close()
+func (b *Bot) getSnapshot(channelID, dc string) map[string]*ffxiv.Listing {
+	if b.lastSnapshot[channelID] == nil {
+		b.lastSnapshot[channelID] = make(map[string]map[string]*ffxiv.Listing)
 	}
-	if b.store != nil {
-		b.store.Close()
+	if b.lastSnapshot[channelID][dc] == nil {
+		b.lastSnapshot[channelID][dc] = make(map[string]*ffxiv.Listing)
 	}
-	logger.Close()
+	return b.lastSnapshot[channelID][dc]
+}
+
+func (b *Bot) setSnapshot(channelID, dc string, listings []*ffxiv.Listing) {
+	if b.lastSnapshot[channelID] == nil {
+		b.lastSnapshot[channelID] = make(map[string]map[string]*ffxiv.Listing)
+	}
+	newMap := make(map[string]*ffxiv.Listing)
+	for i := range listings {
+		l := listings[i]
+		newMap[l.Id] = l
+	}
+	b.lastSnapshot[channelID][dc] = newMap
 }
 
 // ── Scraping loop ─────────────────────────────────────────────────────────────
@@ -108,50 +137,75 @@ func (b *Bot) GracefulShutdown() {
 func (b *Bot) StartScrapingLoop() {
 	logger.Info("scraping loop started (interval: %s)", b.waitTime)
 	for {
-		logger.Info("scraping xivpf.com…")
-		listings, err := b.scraper.Scrape()
-		if err != nil {
-			logger.Error("scrape failed: %v — retrying in 30s", err)
-			time.Sleep(30 * time.Second)
+		b.runScrape()
+		time.Sleep(b.waitTime) // FIX: was missing — loop never slept after a successful pass
+	}
+}
+
+// runScrape performs a single scrape-and-post cycle.
+func (b *Bot) runScrape() {
+	logger.Info("scraping xivpf.com…")
+	listings, err := b.scraper.Scrape()
+	if err != nil {
+		logger.Error("scrape failed: %v — retrying in 30s", err)
+		time.Sleep(30 * time.Second)
+		return
+	}
+
+	b.scraper.LastListings = listings
+	count := len(listings.Listings)
+	logger.Info("scraped %d listing(s)", count)
+
+	if count == 0 {
+		logger.Info("no listings — skipping post")
+		return
+	}
+
+	for _, c := range b.discord.Channels {
+		if c == nil || !c.Enabled {
 			continue
 		}
 
-		b.scraper.LastListings = listings
-		count := len(listings.Listings)
-		logger.Info("scraped %d listing(s)", count)
+		for _, dc := range c.DataCentres {
+			msgID := b.discord.GetLastMessageID(c.ID, dc)
 
-		if count == 0 {
-			logger.Info("no listings — sleeping %s", b.waitTime)
-			time.Sleep(b.waitTime)
-			continue
-		}
-
-		for _, c := range b.discord.Channels {
-			if c == nil || !c.Enabled {
-				continue
-			}
-			for _, dc := range c.DataCentres {
-				msgID := b.discord.GetLastMessageID(c.ID, dc)
-				var postErr error
-				if msgID != "" {
-					postErr = b.discord.UpdateEmbedMessage(c.ID, msgID, listings, c.Duty, dc)
-					if postErr == nil {
-						logger.Info("updated embed — %s / %s", c.Name, dc)
-					}
-				} else {
-					postErr = b.discord.PostEmbedMessage(c.ID, listings, c.Duty, dc)
-					if postErr == nil {
-						logger.Info("posted new embed — %s / %s", c.Name, dc)
-					}
+			// Build new snapshot (slice + map)
+			newSnap := make(map[string]*ffxiv.Listing)
+			var newSlice []*ffxiv.Listing
+			for i := range listings.Listings {
+				l := listings.Listings[i]
+				if l.DataCentre != dc {
+					continue
 				}
-				if postErr != nil {
-					logger.Error("discord post failed for %s (%s): %v", c.Name, dc, postErr)
+				newSnap[l.Id] = l
+				newSlice = append(newSlice, l)
+			}
+
+			// Log removed listings
+			oldSnap := b.getSnapshot(c.ID, dc)
+			for id := range oldSnap {
+				if _, ok := newSnap[id]; !ok {
+					logger.Debug("removed listing detected: %s (%s / %s)", id, c.Name, dc)
 				}
 			}
-		}
 
-		logger.Info("cycle complete — sleeping %s", b.waitTime)
-		time.Sleep(b.waitTime)
+			// Update cache using the helper so initialisation is centralised
+			b.setSnapshot(c.ID, dc, newSlice)
+
+			// Post / update Discord embed
+			var postErr error
+			if msgID != "" {
+				postErr = b.discord.UpdateEmbedMessage(c.ID, msgID, listings, c.Duty, dc)
+			} else {
+				postErr = b.discord.PostEmbedMessage(c.ID, listings, c.Duty, dc)
+			}
+
+			if postErr != nil {
+				logger.Error("discord post failed for %s (%s): %v", c.Name, dc, postErr)
+			} else {
+				logger.Info("updated embed — %s / %s", c.Name, dc)
+			}
+		}
 	}
 }
 
@@ -165,7 +219,6 @@ func (b *Bot) MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 	const prefix = "*"
 	content := m.Content
 
-	// Only log messages that start with the prefix to keep noise down.
 	if strings.HasPrefix(content, prefix) {
 		logger.Debug("command from %s: %s", m.Author.Username, content)
 	}
@@ -235,10 +288,12 @@ func (b *Bot) MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		s.ChannelMessageSend(m.ChannelID, fmt.Sprintf("✅ Scrape interval set to **%s**", d))
 
 	// ── *scrape ───────────────────────────────────────────────────────────────
+	// FIX: was `go b.StartScrapingLoop()` which spawned a second infinite loop.
+	// Now runs a single scrape cycle in a goroutine.
 	case content == prefix+"scrape":
 		logger.Info("manual scrape triggered by %s", m.Author.Username)
-		go b.StartScrapingLoop()
-		s.ChannelMessageSend(m.ChannelID, "✅ Scrape loop started")
+		go b.runScrape()
+		s.ChannelMessageSend(m.ChannelID, "✅ Scrape triggered")
 
 	// ── *enable / *disable / *toggle ─────────────────────────────────────────
 	case strings.HasPrefix(content, prefix+"enable "):
@@ -351,7 +406,6 @@ func (b *Bot) MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 // ── main ──────────────────────────────────────────────────────────────────────
 
 func main() {
-	// ── 1. Logger setup ───────────────────────────────────────────────────────
 	logPath := os.Getenv("LOG_PATH")
 	if logPath == "" {
 		logPath = "logs/findingway.log"
@@ -364,7 +418,6 @@ func main() {
 
 	logger.Section("Findingway")
 
-	// ── 2. Required env vars ─────────────────────────────────────────────────
 	token := os.Getenv("DISCORD_TOKEN")
 	if token == "" {
 		logger.Fatal("DISCORD_TOKEN env var is not set")
@@ -380,7 +433,6 @@ func main() {
 		dbPath = p
 	}
 
-	// ── 3. Boot sequence ─────────────────────────────────────────────────────
 	bot, err := NewBot(token, configPath, dbPath)
 	if err != nil {
 		logger.Fatal("init failed: %v", err)
@@ -394,16 +446,107 @@ func main() {
 		logger.Fatal("discord init failed: %v", err)
 	}
 
+	// Initialize slash commands manager and register commands (global registration)
+	bot.Slash = &discord.SlashCommandManager{Session: bot.dg, Bot: bot}
+	if err := bot.Slash.RegisterCommands(""); err != nil {
+		logger.Warn("could not register slash commands: %v", err)
+	} else {
+		logger.Info("slash commands registered (global)")
+	}
+
 	bot.dg.AddHandler(bot.MessageCreate)
 
 	go bot.StartScrapingLoop()
 
 	logger.Info("bot is running — send SIGINT/SIGTERM to stop")
 
-	// ── 4. Wait for shutdown signal ───────────────────────────────────────────
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
 	bot.GracefulShutdown()
+}
+
+// ── Bot helpers ───────────────────────────────────────────────────────────────
+
+func (b *Bot) EnableChannel(name string) {
+	if b.discord != nil {
+		b.discord.EnableChannel(name)
+	}
+}
+
+func (b *Bot) DisableChannel(name string) {
+	if b.discord != nil {
+		b.discord.DisableChannel(name)
+	}
+}
+
+func (b *Bot) GetChannelByName(name string) *discord.Channel {
+	if b.discord == nil {
+		return nil
+	}
+	return b.discord.GetChannelByName(name)
+}
+
+func (b *Bot) GetChannels() []*discord.Channel {
+	if b.discord == nil {
+		return nil
+	}
+	return b.discord.Channels
+}
+
+func (b *Bot) GetWaitTime() time.Duration {
+	return b.waitTime
+}
+
+func (b *Bot) SetWaitTime(d time.Duration) {
+	b.waitTime = d
+}
+
+func (b *Bot) GracefulShutdown() {
+	logger.Info("graceful shutdown initiated")
+
+	// // FIX: close the discord wrapper first so its internal session is torn down cleanly
+	if b.discord != nil {
+		if err := b.discord.Close(); err != nil {
+			logger.Error("failed to close discord wrapper: %v", err)
+		} else {
+			logger.Info("discord wrapper closed")
+		}
+	}
+
+	if b.dg != nil {
+		if err := b.dg.Close(); err != nil {
+			logger.Error("failed to close discord session: %v", err)
+		} else {
+			logger.Info("discord session closed")
+		}
+	}
+
+	logger.Info("graceful shutdown complete")
+}
+
+func (b *Bot) ForceScrape() error {
+	go func() {
+		listings, err := b.scraper.Scrape()
+		if err != nil {
+			logger.Error("force scrape failed: %v", err)
+			return
+		}
+
+		b.scraper.LastListings = listings
+
+		for _, c := range b.discord.Channels {
+			if c == nil || !c.Enabled {
+				continue
+			}
+			for _, dc := range c.DataCentres {
+				if err := b.discord.PostListings(c.ID, listings, c.Duty, dc); err != nil {
+					logger.Error("forcepost for %s (%s): %v", c.Name, dc, err)
+				}
+			}
+		}
+	}()
+
+	return nil
 }
