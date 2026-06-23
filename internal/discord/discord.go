@@ -208,13 +208,27 @@ func isMercListing(l *ffxiv.Listing) bool {
 
 // CheckAndAnnounceMercListings scans fresh listings and sends @everyone alerts
 // to the announcements channel for any new merc/carry/gil PFs.
+// Only listings on the Light DC and for duties/channels we have configured are checked.
 func (d *Discord) CheckAndAnnounceMercListings(listings *ffxiv.Listings) {
 	if d.AnnouncementsChannel == "" || d.Session == nil {
 		return
 	}
 
+	// Build a set of (duty, dataCentre) pairs from our configured channels.
+	type dutyDC struct{ duty, dc string }
+	watchedPairs := make(map[dutyDC]struct{})
+	for _, c := range d.Channels {
+		for _, dc := range c.DataCentres {
+			watchedPairs[dutyDC{c.Duty, dc}] = struct{}{}
+		}
+	}
+
 	for _, l := range listings.Listings {
 		if _, seen := d.AnnouncedListings[l.Id]; seen {
+			continue
+		}
+		// Only announce listings that match one of our watched duty+DC combos.
+		if _, watched := watchedPairs[dutyDC{l.Duty, l.DataCentre}]; !watched {
 			continue
 		}
 		if !isMercListing(l) {
