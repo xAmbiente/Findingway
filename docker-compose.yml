@@ -1,12 +1,35 @@
 services:
+  postgres:
+    container_name: postgres
+    image: postgres:18-alpine
+    networks:
+      - findingway
+    ports:
+      - '5432:5432'
+    restart: always
+    volumes:
+      - 'postgres-data:/var/lib/postgresql/data'
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=findingway
+    logging:
+      options:
+        max-size: '20m'
+        max-file: '3'
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready']
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+
   findingway:
     container_name: findingway
     build: .
-    environment:
-      - DISCORD_TOKEN=${DISCORD_TOKEN}      # set in .env or shell
-      - CONFIG_PATH=/findingway/config.yaml
-      - DB_PATH=/findingway/data/findingway.db
-      - LOG_PATH=/findingway/logs/findingway.log
+    env_file:
+      - .env
+      - .env.development.local
     image: ghcr.io/xambiente/findingway:latest
     logging:
       options:
@@ -17,9 +40,7 @@ services:
     restart: always
     tty: true
     volumes:
-      - ./data:/findingway/data             # SQLite database
-      - ./logs:/findingway/logs             # log files
-      - ./config.yaml:/findingway/config.yaml:ro  # hot-reload friendly
+      - src/config.yaml:/findingway/config.yaml:ro  # hot-reload friendly
 
 networks:
   findingway:
