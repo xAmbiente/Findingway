@@ -6,13 +6,20 @@
 	"setTypeName": "type",
 	"setTypeDescription": "The type of channel to set.",
 	"channelTypes": {
-		"merc": "Merc",
-		"uwu": "The Weapon's Refrain",
-		"ucob": "The Unending Coil of Bahamut",
-		"tea": "The Epic of Alexander"
+		"Mercantile": "Mercantile",
+		"TheWeaponsRefrain": "The Weapon's Refrain",
+		"TheUnendingCoilOfBahamut": "The Unending Coil of Bahamut",
+		"TheEpicOfAlexander": "The Epic of Alexander"
 	},
 	"setChannelName": "channel",
 	"setChannelDescription": "The channel to set for the specified type.",
+	"toggleName": "toggle",
+	"toggleDescription": "Turn on or off scraping for the specified type.",
 	"showName": "show",
-	"showDescription": "Show the current settings of the bot."
+	"showDescription": "Show the current settings of the bot.",
+	"setSuccessful": "{{GREENTICK}} Successfully set the channel for {{type}} to {{channel}}.",
+	"disabled": "disabled",
+	"enabled": "enabled",
+	"toggleSuccessful": "{{GREENTICK}} Successfully {{state}} scraping for {{type}}.",
+	"toggleNoChannelConfigured": "{{REDCROSS}} No channel is configured for {{type}}. Please set a channel first."
 }

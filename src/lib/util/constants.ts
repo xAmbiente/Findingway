@@ -36,8 +36,7 @@ export const enum XIVServers {
 }
 
 export const enum BrandingColors {
-	Primary = 0xbb77ea,
-	ExpiredEvent = 0xff0000
+	Primary = 0xbb77ea
 }
 
 export const enum LanguageFormatters {
@@ -49,11 +48,11 @@ export const enum LanguageFormatters {
 	Time = 'time'
 }
 
-export const enum ErrorIdentifiers {}
+export const enum ErrorIdentifiers {
+	SetNoChannelConfigured = 'SetNoChannelConfigured'
+}
 
-/* eslint-disable typescript-sort-keys/string-enum */
 export const enum CustomIdPrefixes {}
-/* eslint-enable typescript-sort-keys/string-enum */
 
 export type Classes = 'Arcanist' | 'Archer' | 'Conjurer' | 'Gladiator' | 'Lancer' | 'Marauder' | 'Pugilist' | 'Rogue' | 'Thaumaturge';
 
@@ -83,4 +82,4 @@ export type Jobs =
 	| 'Warrior'
 	| 'WhiteMage';
 
-export type Emojis = Classes | Roles | Jobs | 'RedCross' | 'GreenTick';
+export type Emojis = Classes | Jobs | Roles | 'GreenTick' | 'RedCross';

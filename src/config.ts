@@ -3,7 +3,7 @@
 process.env.NODE_ENV ??= 'development';
 
 import { LanguageFormatters, rootFolder } from '#utils/constants';
-import { XIVEventBuddyEmojis } from '#utils/emojis';
+import { FindingwayEmojis } from '#utils/emojis';
 import { LogLevel } from '@sapphire/framework';
 import { i18next, type I18nextFormatter, type InternationalizationOptions } from '@sapphire/plugin-i18next';
 import { envParseInteger, envParseString, setup } from '@skyra/env-utilities';
@@ -60,8 +60,8 @@ function parseInternationalizationDefaultVariablesPermissions() {
 
 function parseInternationalizationDefaultVariables() {
 	return {
-		GREENTICK: XIVEventBuddyEmojis.GreenTick,
-		REDCROSS: XIVEventBuddyEmojis.RedCross,
+		GREENTICK: FindingwayEmojis.GreenTick,
+		REDCROSS: FindingwayEmojis.RedCross,
 		...parseInternationalizationDefaultVariablesPermissions()
 	};
 }

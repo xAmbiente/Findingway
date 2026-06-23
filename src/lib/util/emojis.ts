@@ -1,7 +1,7 @@
 import type { Emojis, Jobs } from '#lib/util/constants';
 import { formatEmoji } from 'discord.js';
 
-export const XIVEventBuddyEmojis: Record<Emojis, string> = {
+export const FindingwayEmojis: Record<Emojis, string> = {
 	// Jobs
 	Astrologian: formatEmoji('1518605444044816447', false),
 	Bard: formatEmoji('1518605456807821342', false),
@@ -47,10 +47,10 @@ export const XIVEventBuddyEmojis: Record<Emojis, string> = {
 	TankHealerDps: formatEmoji('1518614267375390770', false),
 
 	// Other
-	RedCross: formatEmoji('1518970626797473984', false),
-	GreenTick: formatEmoji('1518970625216221224', false)
+	RedCross: formatEmoji({ id: '1518970626797473984', name: 'redcross' }),
+	GreenTick: formatEmoji({ id: '1518970625216221224', name: 'greentick' })
 } as const;
 
 export function getEmojiForJob(job: Jobs): string {
-	return XIVEventBuddyEmojis[job] || '';
+	return FindingwayEmojis[job] || '';
 }
