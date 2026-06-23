@@ -23,7 +23,7 @@ type Discord struct {
 	Channels             []*Channel
 	Session              *discordgo.Session
 	Store                *store.Store
-	AnnouncementsChannel string // channel ID for merc alerts
+	AnnouncementsChannel string              // channel ID for merc alerts
 	AnnouncedListings    map[string]struct{} // listing IDs already announced
 }
 

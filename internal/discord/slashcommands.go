@@ -201,6 +201,7 @@ func (s *SlashCommandManager) respond(i *discordgo.InteractionCreate, msg string
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: msg,
+			Flags:   discordgo.MessageFlagsEphemeral,
 		},
 	})
 }
