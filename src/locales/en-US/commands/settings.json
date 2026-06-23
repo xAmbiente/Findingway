@@ -1,0 +1,18 @@
+{
+	"rootName": "settings",
+	"rootDescription": "Change the settings of the bot.",
+	"setName": "set",
+	"setDescription": "Set a setting for the bot.",
+	"setTypeName": "type",
+	"setTypeDescription": "The type of channel to set.",
+	"channelTypes": {
+		"merc": "Merc",
+		"uwu": "The Weapon's Refrain",
+		"ucob": "The Unending Coil of Bahamut",
+		"tea": "The Epic of Alexander"
+	},
+	"setChannelName": "channel",
+	"setChannelDescription": "The channel to set for the specified type.",
+	"showName": "show",
+	"showDescription": "Show the current settings of the bot."
+}

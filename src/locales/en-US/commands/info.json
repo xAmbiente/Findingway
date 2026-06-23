@@ -1,0 +1,25 @@
+{
+	"rootName": "info",
+	"rootDescription": "Provides information about Findingway.",
+	"content": "Findingway is a Discord bot that scrapes xivlisting.com and cross posts them to Discord.\nIt is built with the {{sapphire}} and {{discordjs}}.",
+	"fields": {
+		"stats": {
+			"users": "Users",
+			"servers": "Servers",
+			"channels": "Channels",
+			"nodejs": "Node.js",
+			"discordjs": "Discord.js",
+			"sapphire": "Sapphire Framework"
+		},
+		"uptime": {
+			"host": "Host",
+			"total": "Total",
+			"client": "Client"
+		},
+		"usage": {
+			"cpuLoad": "CPU Load",
+			"heapUsed": "Heap",
+			"total": "Total"
+		}
+	}
+}

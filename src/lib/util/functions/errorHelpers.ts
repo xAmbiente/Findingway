@@ -10,6 +10,7 @@ import {
 	type Command,
 	type ContextMenuCommandErrorPayload
 } from '@sapphire/framework';
+import { resolveKey } from '@sapphire/plugin-i18next';
 import { codeBlock, filterNullish, isNullish } from '@sapphire/utilities';
 import {
 	bold,
@@ -44,7 +45,7 @@ export async function handleChatInputOrContextMenuCommandError(
 	// If the error was an AbortError or an Internal Server Error, tell the user to re-try:
 	if (error.name === 'AbortError' || error.message === 'Internal Server Error') {
 		logger.warn(`${getWarnError(interaction)} (${interaction.user.id}) | ${error.constructor.name}`);
-		return alert(interaction, 'I had a small network error when messaging Discord. Please run this command again!');
+		return alert(interaction, await resolveKey(interaction, 'errors:networkError'));
 	}
 
 	// Extract useful information about the DiscordAPIError
@@ -64,7 +65,7 @@ export async function handleChatInputOrContextMenuCommandError(
 	// Emit where the error was emitted
 	logger.fatal(`[COMMAND] ${command.location.full}\n${error.stack ?? error.message}`);
 	try {
-		await alert(interaction, await generateUnexpectedErrorMessage(error));
+		await alert(interaction, await generateUnexpectedErrorMessage(interaction, error));
 	} catch (error) {
 		client.emit(Events.Error, error as Error);
 	}
@@ -72,22 +73,34 @@ export async function handleChatInputOrContextMenuCommandError(
 	return undefined;
 }
 
-export async function generateUnexpectedErrorMessage(error: Error | UserError) {
-	let body = `I found an unexpected error, please report the steps you have taken to support!\n\nThis is the stacktrace, please send this along with your report:\n${codeBlock('js', error.stack ?? error.message)}`;
+export async function generateUnexpectedErrorMessage(interaction: BaseInteraction | null, error: Error | UserError) {
+	let body = await resolveKey(interaction!, 'errors:unexpectedError', {
+		stacktrace: codeBlock('js', error.stack ?? error.message),
+		lng: isNullish(interaction) ? 'en-US' : undefined
+	});
 
 	if (error instanceof UserError && error.context) {
-		body += `\nThis error had additional relevant context:\n${codeBlock('json', JSON.stringify(error.context, null, 2))}`;
+		body += await resolveKey(interaction!, 'errors:unexpectedErrorAdditionalContext', {
+			context: codeBlock('json', JSON.stringify(error.context, null, 2)),
+			lng: isNullish(interaction) ? 'en-US' : undefined
+		});
 	}
 
 	return body;
 }
 
 export async function stringError(interaction: BaseInteraction, error: string) {
-	return alert(interaction, `Dear ${userMention(interaction.user.id)}, ${error}`);
+	return alert(
+		interaction,
+		await resolveKey(interaction, 'errors:dearPrefix', {
+			user: userMention(interaction.user.id),
+			error
+		})
+	);
 }
 
 export async function userError(interaction: BaseInteraction, error: UserError) {
-	return alert(interaction, error.message ?? 'An error occurred that I was not able to identify. Contact support for assistance.');
+	return alert(interaction, error.message ?? (await resolveKey(interaction, 'errors: userError')));
 }
 
 async function alert(interaction: BaseInteraction, content: string) {

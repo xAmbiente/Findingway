@@ -40,6 +40,15 @@ export const enum BrandingColors {
 	ExpiredEvent = 0xff0000
 }
 
+export const enum LanguageFormatters {
+	Date = 'date',
+	InlineCode = 'inlineCode',
+	Number = 'number',
+	Permissions = 'permissions',
+	RelativeTime = 'relativeTime',
+	Time = 'time'
+}
+
 export const enum ErrorIdentifiers {}
 
 /* eslint-disable typescript-sort-keys/string-enum */
@@ -74,4 +83,4 @@ export type Jobs =
 	| 'Warrior'
 	| 'WhiteMage';
 
-export type Emojis = Classes | Roles | Jobs;
+export type Emojis = Classes | Roles | Jobs | 'RedCross' | 'GreenTick';

@@ -19,6 +19,7 @@ import {
 	type InteractionHandlerError,
 	type InteractionHandlerParseError
 } from '@sapphire/framework';
+import { resolveKey } from '@sapphire/plugin-i18next';
 import { isNullish } from '@sapphire/utilities';
 import { DiscordAPIError, EmbedBuilder, HTTPError, MessageFlags, RESTJSONErrorCodes, type Interaction } from 'discord.js';
 import { fileURLToPath } from 'node:url';
@@ -35,7 +36,7 @@ export async function handleInteractionError(error: Error, { handler, interactio
 	// If the error was an AbortError or an Internal Server Error, tell the user to re-try:
 	if (error.name === 'AbortError' || error.message === 'Internal Server Error') {
 		logger.warn(`${getWarnError(interaction)} (${interaction.user.id}) | ${error.constructor.name}`);
-		return alert(interaction, 'I had a small network error when messaging Discord. Please run this command again!');
+		return alert(interaction, await resolveKey(interaction, 'errors:networkError'));
 	}
 
 	// Extract useful information about the DiscordAPIError
@@ -55,7 +56,7 @@ export async function handleInteractionError(error: Error, { handler, interactio
 	// Emit where the error was emitted
 	logger.fatal(`[COMMAND] ${handler.location.full}\n${error.stack ?? error.message}`);
 	try {
-		await alert(interaction, await generateUnexpectedErrorMessage(error));
+		await alert(interaction, await generateUnexpectedErrorMessage(interaction, error));
 	} catch (error) {
 		client.emit(Events.Error, error as Error);
 	}

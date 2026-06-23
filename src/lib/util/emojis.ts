@@ -44,11 +44,11 @@ export const XIVEventBuddyEmojis: Record<Emojis, string> = {
 	Tank: formatEmoji('1518605472733855835', false),
 	TankDPS: formatEmoji('1518614269397303356', false),
 	TankHealer: formatEmoji('1518614266045923459', false),
-	TankHealerDps: formatEmoji('1518614267375390770', false)
+	TankHealerDps: formatEmoji('1518614267375390770', false),
 
-	// // Other
-	// RedCross: formatEmoji('1324572748130947143', false),
-	// GreenTick: formatEmoji('1324572747069915188', false),
+	// Other
+	RedCross: formatEmoji('1518970626797473984', false),
+	GreenTick: formatEmoji('1518970625216221224', false)
 } as const;
 
 export function getEmojiForJob(job: Jobs): string {
