@@ -11,12 +11,20 @@ import (
 	"github.com/bwmarrin/discordgo"
 )
 
+// mercKeywords are terms in a PF description that suggest a paid carry/merc run.
+var mercKeywords = []string{
+	"merc", "mercenary", "carry", "gil", "payment", "paid", "boost", "sell", "selling",
+	"pay", "fee", "wage", "commission",
+}
+
 // Discord owns the bot session and all channel state.
 type Discord struct {
-	Token    string
-	Channels []*Channel
-	Session  *discordgo.Session
-	Store    *store.Store
+	Token                string
+	Channels             []*Channel
+	Session              *discordgo.Session
+	Store                *store.Store
+	AnnouncementsChannel string // channel ID for merc alerts
+	AnnouncedListings    map[string]struct{} // listing IDs already announced
 }
 
 // Close gracefully shuts down the internal discord session if open.
@@ -49,6 +57,10 @@ func (d *Discord) Start() error {
 		return fmt.Errorf("open websocket: %w", err)
 	}
 	d.Session = s
+
+	if d.AnnouncedListings == nil {
+		d.AnnouncedListings = make(map[string]struct{})
+	}
 
 	// Hydrate each channel from the DB (DB wins over YAML).
 	for _, c := range d.Channels {
@@ -181,6 +193,65 @@ func (d *Discord) GetChannelByName(name string) *Channel {
 	return nil
 }
 
+// ── Merc / announcement detection ────────────────────────────────────────────
+
+// isMercListing returns true if the listing's description or tags contain merc/payment keywords.
+func isMercListing(l *ffxiv.Listing) bool {
+	haystack := strings.ToLower(l.Description + " " + l.Tags)
+	for _, kw := range mercKeywords {
+		if strings.Contains(haystack, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckAndAnnounceMercListings scans fresh listings and sends @everyone alerts
+// to the announcements channel for any new merc/carry/gil PFs.
+func (d *Discord) CheckAndAnnounceMercListings(listings *ffxiv.Listings) {
+	if d.AnnouncementsChannel == "" || d.Session == nil {
+		return
+	}
+
+	for _, l := range listings.Listings {
+		if _, seen := d.AnnouncedListings[l.Id]; seen {
+			continue
+		}
+		if !isMercListing(l) {
+			continue
+		}
+
+		d.AnnouncedListings[l.Id] = struct{}{}
+
+		desc := l.Description
+		if desc == "" {
+			desc = "(no description)"
+		}
+		msg := fmt.Sprintf(
+			"@everyone ⚠️ **Possible merc/paid party listing detected!**\n"+
+				"**Duty:** %s | **DC:** %s | **Creator:** %s\n"+
+				"**Description:** %s",
+			l.Duty, l.DataCentre, l.Creator, desc,
+		)
+		if _, err := d.Session.ChannelMessageSend(d.AnnouncementsChannel, msg); err != nil {
+			logger.Error("merc announcement failed for listing %s: %v", l.Id, err)
+		} else {
+			logger.Info("merc announcement sent for listing %s (%s – %s)", l.Id, l.Duty, l.Creator)
+		}
+	}
+
+	// Prune announced IDs that no longer exist to keep memory tidy.
+	currentIDs := make(map[string]struct{}, len(listings.Listings))
+	for _, l := range listings.Listings {
+		currentIDs[l.Id] = struct{}{}
+	}
+	for id := range d.AnnouncedListings {
+		if _, exists := currentIDs[id]; !exists {
+			delete(d.AnnouncedListings, id)
+		}
+	}
+}
+
 // ── internal helpers ─────────────────────────────────────────────────────────
 
 func (d *Discord) getChannel(id string) *Channel {
@@ -193,14 +264,34 @@ func (d *Discord) getChannel(id string) *Channel {
 }
 
 // buildEmbed constructs the Discord embed for a duty/dc combination.
+// Listings that have already expired are filtered out so stale entries
+// never appear in the embed.
 func (d *Discord) buildEmbed(listings *ffxiv.Listings, duty, dc string) *discordgo.MessageEmbed {
 	scoped := listings.ForDutyAndDataCentre(duty, dc)
+
+	// ── Filter out expired listings ──────────────────────────────────────────
+	var active []*ffxiv.Listing
+	now := time.Now()
+	for _, l := range scoped.Listings {
+		exp, err := l.ExpiresAt()
+		if err != nil {
+			// Can't parse expiry — include it to be safe.
+			active = append(active, l)
+			continue
+		}
+		if exp.After(now) {
+			active = append(active, l)
+		} else {
+			logger.Debug("embed: skipping expired listing %s (%s) expired %s ago",
+				l.Id, l.Creator, now.Sub(exp).Round(time.Second))
+		}
+	}
 
 	embed := &discordgo.MessageEmbed{
 		Title: fmt.Sprintf("%s PFs (%s)", duty, dc),
 		Description: fmt.Sprintf(
-			"Found **%d** listings • <t:%d:R>",
-			len(scoped.Listings),
+			"Found **%d** active listings • <t:%d:R>",
+			len(active),
 			time.Now().Unix(),
 		),
 		Color: 0x6600ff,
@@ -210,7 +301,7 @@ func (d *Discord) buildEmbed(listings *ffxiv.Listings, duty, dc string) *discord
 	}
 
 	fieldCount := 0
-	for _, l := range scoped.Listings {
+	for _, l := range active {
 		if fieldCount >= 24 {
 			break
 		}

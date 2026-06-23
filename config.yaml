@@ -1,13 +1,17 @@
+announcementsChannel: "1507136929022345326"   
 channels:
   - id: "1518538403275083926"
     name: "UWU"
     duty: "The Weapon's Refrain (Ultimate)"
     dataCentres: [Light]
+    enabled: true
   - id: "1518538414415413318"
     name: "Ucob"
     duty: "The Unending Coil of Bahamut (Ultimate)"
     dataCentres: [Light]
+    enabled: true
   - id: "1518538423311274057"
     name: "Tea"
     duty: "The Epic of Alexander (Ultimate)"
     dataCentres: [Light]
+    enabled: true

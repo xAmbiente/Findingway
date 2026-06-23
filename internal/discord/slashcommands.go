@@ -17,7 +17,6 @@ type SlashCommandManager struct {
 	Bot     BotInterface
 }
 
-// BotInterface keeps dependency clean (your Bot struct implements this)
 type BotInterface interface {
 	LoadConfig() error
 	GetWaitTime() time.Duration
@@ -27,6 +26,12 @@ type BotInterface interface {
 	EnableChannel(name string)
 	DisableChannel(name string)
 	ForceScrape() error
+	// Announcements
+	GetAnnouncementsChannel() string
+	SetAnnouncementsChannel(id string)
+	// Listing info
+	GetCachedListingCount() int
+	ClearMercCache()
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -62,7 +67,7 @@ func (s *SlashCommandManager) RegisterCommands(guildID string) error {
 		},
 		{
 			Name:        "enable",
-			Description: "Enable channel",
+			Description: "Enable a monitored channel",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -74,7 +79,43 @@ func (s *SlashCommandManager) RegisterCommands(guildID string) error {
 		},
 		{
 			Name:        "disable",
-			Description: "Disable channel",
+			Description: "Disable a monitored channel",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "name",
+					Description: "Channel name (as configured)",
+					Required:    true,
+				},
+			},
+		},
+		{
+			Name:        "channels",
+			Description: "List all configured channels and their status",
+		},
+		{
+			Name:        "announce",
+			Description: "Set or clear the announcements channel for merc/gill alerts",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Type:        discordgo.ApplicationCommandOptionString,
+					Name:        "channel_id",
+					Description: "Channel ID, or 'off' to disable",
+					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        "listingcount",
+			Description: "Show active listing counts per channel (excludes expired)",
+		},
+		{
+			Name:        "clearold",
+			Description: "Clear the merc-announcement seen-listing cache",
+		},
+		{
+			Name:        "resetmsg",
+			Description: "Clear embed message so a fresh one is posted next cycle",
 			Options: []*discordgo.ApplicationCommandOption{
 				{
 					Type:        discordgo.ApplicationCommandOptionString,
@@ -133,6 +174,21 @@ func (s *SlashCommandManager) HandleInteraction(i *discordgo.InteractionCreate) 
 
 	case "disable":
 		s.handleDisable(i)
+
+	case "channels":
+		s.handleChannels(i)
+
+	case "announce":
+		s.handleAnnounce(i)
+
+	case "listingcount":
+		s.handleListingCount(i)
+
+	case "clearold":
+		s.handleClearOld(i)
+
+	case "resetmsg":
+		s.handleResetMsg(i)
 	}
 }
 
@@ -159,8 +215,17 @@ func (s *SlashCommandManager) handleStatus(i *discordgo.InteractionCreate) {
 		}
 	}
 
-	s.respond(i, fmt.Sprintf("📊 Channels: %d total / %d enabled | Interval: %s",
-		len(ch), enabled, s.Bot.GetWaitTime()))
+	ann := s.Bot.GetAnnouncementsChannel()
+	if ann == "" {
+		ann = "not set"
+	} else {
+		ann = fmt.Sprintf("<#%s>", ann)
+	}
+
+	s.respond(i, fmt.Sprintf(
+		"📊 Channels: %d total / %d enabled | Interval: %s | Announcements: %s",
+		len(ch), enabled, s.Bot.GetWaitTime(), ann,
+	))
 }
 
 func (s *SlashCommandManager) handleReload(i *discordgo.InteractionCreate) {
@@ -192,11 +257,74 @@ func (s *SlashCommandManager) handleScrape(i *discordgo.InteractionCreate) {
 func (s *SlashCommandManager) handleEnable(i *discordgo.InteractionCreate) {
 	name := i.ApplicationCommandData().Options[0].StringValue()
 	s.Bot.EnableChannel(name)
-	s.respond(i, fmt.Sprintf("🟢 Enabled %s", strings.ToUpper(name)))
+	s.respond(i, fmt.Sprintf("🟢 Enabled **%s**", strings.ToUpper(name)))
 }
 
 func (s *SlashCommandManager) handleDisable(i *discordgo.InteractionCreate) {
 	name := i.ApplicationCommandData().Options[0].StringValue()
 	s.Bot.DisableChannel(name)
-	s.respond(i, fmt.Sprintf("🔴 Disabled %s", strings.ToUpper(name)))
+	s.respond(i, fmt.Sprintf("🔴 Disabled **%s**", strings.ToUpper(name)))
+}
+
+func (s *SlashCommandManager) handleChannels(i *discordgo.InteractionCreate) {
+	channels := s.Bot.GetChannels()
+	if len(channels) == 0 {
+		s.respond(i, "No channels configured")
+		return
+	}
+	var lines []string
+	for _, c := range channels {
+		icon := "🔴"
+		if c.Enabled {
+			icon = "🟢"
+		}
+		lines = append(lines, fmt.Sprintf("%s **%s** — %s [DC: %s]", icon, c.Name, c.Duty, strings.Join(c.DataCentres, ", ")))
+	}
+	s.respond(i, strings.Join(lines, "\n"))
+}
+
+func (s *SlashCommandManager) handleAnnounce(i *discordgo.InteractionCreate) {
+	opts := i.ApplicationCommandData().Options
+	if len(opts) == 0 {
+		cur := s.Bot.GetAnnouncementsChannel()
+		if cur == "" {
+			s.respond(i, "ℹ️ Announcements channel not set. Use `/announce channel_id:<id>` to configure.")
+		} else {
+			s.respond(i, fmt.Sprintf("ℹ️ Current announcements channel: <#%s>", cur))
+		}
+		return
+	}
+	arg := opts[0].StringValue()
+	if strings.EqualFold(arg, "off") {
+		s.Bot.SetAnnouncementsChannel("")
+		s.respond(i, "✅ Merc/payment announcements **disabled**")
+		return
+	}
+	s.Bot.SetAnnouncementsChannel(arg)
+	s.respond(i, fmt.Sprintf("✅ Announcements channel set to <#%s>", arg))
+}
+
+func (s *SlashCommandManager) handleListingCount(i *discordgo.InteractionCreate) {
+	total := s.Bot.GetCachedListingCount()
+	if total < 0 {
+		s.respond(i, "❌ No cached listings yet — run `/scrape` first")
+		return
+	}
+	s.respond(i, fmt.Sprintf("📋 %d listings currently in cache (expired listings are hidden from embeds)", total))
+}
+
+func (s *SlashCommandManager) handleClearOld(i *discordgo.InteractionCreate) {
+	s.Bot.ClearMercCache()
+	s.respond(i, "✅ Merc announcement cache cleared")
+}
+
+func (s *SlashCommandManager) handleResetMsg(i *discordgo.InteractionCreate) {
+	name := i.ApplicationCommandData().Options[0].StringValue()
+	ch := s.Bot.GetChannelByName(name)
+	if ch == nil {
+		s.respond(i, "❌ Channel not found")
+		return
+	}
+	ch.MessageID = ""
+	s.respond(i, fmt.Sprintf("✅ Embed reset for **%s** — fresh post next cycle", name))
 }
