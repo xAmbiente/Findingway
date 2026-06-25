@@ -39,8 +39,8 @@ export async function buildPfPost({ entries, timeOfScrape }: PostMessagePayload,
 					[
 						//
 						buildPartyListing(entry.party),
-						bold(`⌛ ${entry.expires}`),
-						bold(`⏱️ ${entry.updated}`)
+						bold(`⌛ ${time(entry.expires, TimestampStyles.RelativeTime)}`),
+						bold(`⏱️ ${time(entry.updated, TimestampStyles.RelativeTime)}`)
 					].join('\t')
 				),
 			(textDisplay) => textDisplay.setContent(codeBlock('txt', entry.description))

@@ -3536,13 +3536,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"date-fns@npm:^4.4.0":
-  version: 4.4.0
-  resolution: "date-fns@npm:4.4.0"
-  checksum: 10/ae702acea42fb8452abe74f6d133c2360de9a14f00985645684b0df9c12280276649e95b52298a4fd7dabcc3b38799eb111107da99320d1cd94ba1d8a3d1c174
-  languageName: node
-  linkType: hard
-
 "debug@npm:4.4.3, debug@npm:^4.0.0, debug@npm:^4.1.0, debug@npm:^4.3.1, debug@npm:^4.3.2, debug@npm:^4.3.4, debug@npm:^4.4.0, debug@npm:^4.4.1, debug@npm:^4.4.3":
   version: 4.4.3
   resolution: "debug@npm:4.4.3"
@@ -4963,7 +4956,6 @@ __metadata:
     bufferutil: "npm:^4.1.0"
     bullmq: "npm:^5.79.1"
     colorette: "npm:^2.0.20"
-    date-fns: "npm:^4.4.0"
     discord.js: "npm:^14.26.4"
     eslint: "npm:^10.5.0"
     eslint-config-neon: "npm:^0.5.4"

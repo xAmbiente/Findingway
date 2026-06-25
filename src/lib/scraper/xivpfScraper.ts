@@ -27,57 +27,6 @@ export async function scrape(): Promise<{
 	}
 }
 
-function sortAndLimitListingsByUpdated(listings: ListingEntry[]): ListingEntry[] {
-	return [...listings]
-		.sort((left, right) => parseRelativeUpdatedAgeSeconds(left.updated) - parseRelativeUpdatedAgeSeconds(right.updated))
-		.slice(0, 7);
-}
-
-function parseRelativeUpdatedAgeSeconds(updated: string): number {
-	const normalized = updated.trim().toLowerCase();
-	if (!normalized || normalized === 'just now' || normalized === 'now') {
-		return 0;
-	}
-
-	const compactMatch = /^(?<amount>\d+)\s*(?<unit>[dhmsw])\s*ago$/.exec(normalized);
-	if (compactMatch?.groups) {
-		const amount = Number.parseInt(compactMatch.groups.amount, 10);
-		const multiplier = getTimeUnitSeconds(compactMatch.groups.unit);
-		return amount * multiplier;
-	}
-
-	const verboseMatch = /^(?<amount>\d+)\s*(?<unit>second|minute|hour|day|week)s?\s*ago$/.exec(normalized);
-	if (verboseMatch?.groups) {
-		const amount = Number.parseInt(verboseMatch.groups.amount, 10);
-		const unit = verboseMatch.groups.unit;
-		const shortUnit = unit === 'second' ? 's' : unit === 'minute' ? 'm' : unit === 'hour' ? 'h' : unit === 'day' ? 'd' : 'w';
-		const multiplier = getTimeUnitSeconds(shortUnit);
-		return amount * multiplier;
-	}
-
-	return Number.POSITIVE_INFINITY;
-}
-
-function getTimeUnitSeconds(unit: string): number {
-	if (unit === 's') {
-		return 1;
-	}
-
-	if (unit === 'm') {
-		return 60;
-	}
-
-	if (unit === 'h') {
-		return 60 * 60;
-	}
-
-	if (unit === 'd') {
-		return 60 * 60 * 24;
-	}
-
-	return 60 * 60 * 24 * 7;
-}
-
 async function scrapeListingsForDuty(browser: Browser, duty: keyof typeof SearchTerms): Promise<ListingEntry[]> {
 	const context = await browser.newContext();
 
@@ -96,9 +45,10 @@ async function initWebpage(browserOrContext: BrowserContext): Promise<Page> {
 	await page.goto('https://xivpf.com/listings');
 	await page.locator('body').click();
 	await page.locator('#data-centre-filter').selectOption('Light');
-	await page.getByText('advanced').click();
+	const advancedFiltersToggle = page.locator('.filter-controls').getByText('advanced');
+	await advancedFiltersToggle.click();
 	await page.getByLabel('Categories Duty Roulette').selectOption('HighEndDuty');
-	await page.getByText('advanced').click();
+	await advancedFiltersToggle.click();
 
 	return page;
 }
@@ -112,6 +62,7 @@ async function filterListings(page: Page, filterTerm: keyof typeof SearchTerms) 
 
 async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 	await page.waitForSelector('#listings .listing');
+	const nowUnixTimestamp = Math.floor(Date.now() / 1_000);
 
 	const listings = await page.locator('#listings > .listing').evaluateAll((listingNodeElements) => {
 		return listingNodeElements.map((listingNode) => {
@@ -186,7 +137,7 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 				}
 			}
 
-			const result: ListingEntry = {
+			return {
 				creator,
 				duty,
 				description,
@@ -197,18 +148,116 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 				updated,
 				world
 			};
-			return result;
 		});
 	});
 
 	const seenCreators = new Set<string>();
-	return listings.filter((listing) => {
-		const normalizedCreator = listing.creator.trim().toLowerCase();
-		if (seenCreators.has(normalizedCreator)) {
-			return false;
-		}
+	return listings
+		.filter((listing) => {
+			const normalizedCreator = listing.creator.trim().toLowerCase();
+			if (seenCreators.has(normalizedCreator)) {
+				return false;
+			}
 
-		seenCreators.add(normalizedCreator);
-		return true;
-	});
+			seenCreators.add(normalizedCreator);
+			return true;
+		})
+		.map((listing) => {
+			console.log(
+				`Building post for ${listing.duty} from ${listing.creator} with updated ${listing.updated} and parsed ${parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)}`
+			);
+			return {
+				...listing,
+				expires: parseRelativeExpiresToUnixTimestamp(listing.expires, nowUnixTimestamp),
+				updated: parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)
+			};
+		});
+}
+
+function sortAndLimitListingsByUpdated(listings: ListingEntry[]): ListingEntry[] {
+	return [...listings].sort((left, right) => right.updated - left.updated).slice(0, 7);
+}
+
+function parseRelativeUpdatedToUnixTimestamp(updated: string, nowUnixTimestamp: number): number {
+	return nowUnixTimestamp - parseRelativeUpdatedAgeSeconds(updated);
+}
+
+function parseRelativeUpdatedAgeSeconds(updated: string): number {
+	const normalized = updated.trim().toLowerCase();
+	if (!normalized || normalized === 'just now' || normalized === 'now') {
+		return 0;
+	}
+
+	if (normalized === 'a second ago' || normalized === 'an second ago') {
+		return getTimeUnitSeconds('s');
+	}
+
+	if (normalized === 'a minute ago' || normalized === 'an minute ago') {
+		return getTimeUnitSeconds('m');
+	}
+
+	if (normalized === 'an hour ago' || normalized === 'a hour ago') {
+		return getTimeUnitSeconds('h');
+	}
+
+	const compactMatch = /^(?<amount>\d+)\s*(?<unit>[hms])\s*ago$/.exec(normalized);
+	if (compactMatch?.groups) {
+		const amount = Number.parseInt(compactMatch.groups.amount, 10);
+		const multiplier = getTimeUnitSeconds(compactMatch.groups.unit);
+		return amount * multiplier;
+	}
+
+	const verboseMatch = /^(?<amount>\d+)\s*(?<unit>second|minute|hour)s?\s*ago$/.exec(normalized);
+	if (verboseMatch?.groups) {
+		const amount = Number.parseInt(verboseMatch.groups.amount, 10);
+		const unit = verboseMatch.groups.unit;
+		const shortUnit = unit === 'second' ? 's' : unit === 'minute' ? 'm' : 'h';
+		const multiplier = getTimeUnitSeconds(shortUnit);
+		return amount * multiplier;
+	}
+
+	return 0;
+}
+
+function parseRelativeExpiresToUnixTimestamp(expires: string, nowUnixTimestamp: number): number {
+	return nowUnixTimestamp + parseRelativeExpiresInSeconds(expires);
+}
+
+function parseRelativeExpiresInSeconds(expires: string): number {
+	const normalized = expires.trim().toLowerCase();
+	if (!normalized) {
+		return 0;
+	}
+
+	if (normalized === 'in an hour' || normalized === 'in a hour') {
+		return getTimeUnitSeconds('h');
+	}
+
+	if (normalized === 'in a minute' || normalized === 'in one minute') {
+		return getTimeUnitSeconds('m');
+	}
+
+	const minutesMatch = /^in\s+(?<amount>\d+)\s+minutes?$/.exec(normalized);
+	if (minutesMatch?.groups) {
+		const amount = Number.parseInt(minutesMatch.groups.amount, 10);
+		return amount * getTimeUnitSeconds('m');
+	}
+
+	return 0;
+}
+
+function getTimeUnitSeconds(unit: string): number {
+	if (unit === 's') {
+		return 1;
+	}
+
+	if (unit === 'm') {
+		return 60;
+	}
+
+	if (unit === 'h') {
+		return 60 * 60;
+	}
+
+	return 0;
 }

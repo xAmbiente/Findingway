@@ -2,11 +2,11 @@ export interface ListingEntry {
 	creator: string;
 	description: string;
 	duty: string;
-	expires: string;
+	expires: number;
 	minIlvl: string;
 	party: Party[];
 	pfTags?: string;
-	updated: string;
+	updated: number;
 	world: string;
 }
 
