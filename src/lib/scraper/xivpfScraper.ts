@@ -1,37 +1,97 @@
 import { ChannelType } from '#lib/generated/prisma-client/enums';
 import { SearchTerms } from '#lib/scraper/constants';
 import type { ListingEntry, Party } from '#lib/scraper/types';
-import { chromium, type Page } from 'playwright';
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 
 export async function scrape(): Promise<{
 	[ChannelType.TheEpicOfAlexander]: ListingEntry[];
 	[ChannelType.TheUnendingCoilOfBahamut]: ListingEntry[];
 	[ChannelType.TheWeaponsRefrain]: ListingEntry[];
 }> {
-	const page = await initWebpage();
+	const browser = await chromium.launch();
 
-	const [teaListings, ucobListings, uwuListings] = await Promise.all([
-		filterListings(page, ChannelType.TheEpicOfAlexander),
-		filterListings(page, ChannelType.TheUnendingCoilOfBahamut),
-		filterListings(page, ChannelType.TheWeaponsRefrain)
-	]);
+	try {
+		const [teaListings, ucobListings, uwuListings] = await Promise.all([
+			scrapeListingsForDuty(browser, ChannelType.TheEpicOfAlexander),
+			scrapeListingsForDuty(browser, ChannelType.TheUnendingCoilOfBahamut),
+			scrapeListingsForDuty(browser, ChannelType.TheWeaponsRefrain)
+		]);
 
-	const [teaListingsJson, ucobListingsJson, uwuListingsJson] = await Promise.all([
-		getListingAsJson(teaListings),
-		getListingAsJson(ucobListings),
-		getListingAsJson(uwuListings)
-	]);
-
-	return {
-		[ChannelType.TheEpicOfAlexander]: teaListingsJson,
-		[ChannelType.TheUnendingCoilOfBahamut]: ucobListingsJson,
-		[ChannelType.TheWeaponsRefrain]: uwuListingsJson
-	};
+		return {
+			[ChannelType.TheEpicOfAlexander]: sortAndLimitListingsByUpdated(teaListings),
+			[ChannelType.TheUnendingCoilOfBahamut]: sortAndLimitListingsByUpdated(ucobListings),
+			[ChannelType.TheWeaponsRefrain]: sortAndLimitListingsByUpdated(uwuListings)
+		};
+	} finally {
+		await browser.close();
+	}
 }
 
-async function initWebpage(): Promise<Page> {
-	const browser = await chromium.launch();
-	const page = await browser.newPage();
+function sortAndLimitListingsByUpdated(listings: ListingEntry[]): ListingEntry[] {
+	return [...listings]
+		.sort((left, right) => parseRelativeUpdatedAgeSeconds(left.updated) - parseRelativeUpdatedAgeSeconds(right.updated))
+		.slice(0, 7);
+}
+
+function parseRelativeUpdatedAgeSeconds(updated: string): number {
+	const normalized = updated.trim().toLowerCase();
+	if (!normalized || normalized === 'just now' || normalized === 'now') {
+		return 0;
+	}
+
+	const compactMatch = /^(?<amount>\d+)\s*(?<unit>[dhmsw])\s*ago$/.exec(normalized);
+	if (compactMatch?.groups) {
+		const amount = Number.parseInt(compactMatch.groups.amount, 10);
+		const multiplier = getTimeUnitSeconds(compactMatch.groups.unit);
+		return amount * multiplier;
+	}
+
+	const verboseMatch = /^(?<amount>\d+)\s*(?<unit>second|minute|hour|day|week)s?\s*ago$/.exec(normalized);
+	if (verboseMatch?.groups) {
+		const amount = Number.parseInt(verboseMatch.groups.amount, 10);
+		const unit = verboseMatch.groups.unit;
+		const shortUnit = unit === 'second' ? 's' : unit === 'minute' ? 'm' : unit === 'hour' ? 'h' : unit === 'day' ? 'd' : 'w';
+		const multiplier = getTimeUnitSeconds(shortUnit);
+		return amount * multiplier;
+	}
+
+	return Number.POSITIVE_INFINITY;
+}
+
+function getTimeUnitSeconds(unit: string): number {
+	if (unit === 's') {
+		return 1;
+	}
+
+	if (unit === 'm') {
+		return 60;
+	}
+
+	if (unit === 'h') {
+		return 60 * 60;
+	}
+
+	if (unit === 'd') {
+		return 60 * 60 * 24;
+	}
+
+	return 60 * 60 * 24 * 7;
+}
+
+async function scrapeListingsForDuty(browser: Browser, duty: keyof typeof SearchTerms): Promise<ListingEntry[]> {
+	const context = await browser.newContext();
+
+	try {
+		const page = await initWebpage(context);
+		await filterListings(page, duty);
+		return await getListingAsJson(page);
+	} finally {
+		await context.close();
+	}
+}
+
+async function initWebpage(browserOrContext: BrowserContext): Promise<Page> {
+	const page = await browserOrContext.newPage();
 
 	await page.goto('https://xivpf.com/listings');
 	await page.locator('body').click();
@@ -39,10 +99,6 @@ async function initWebpage(): Promise<Page> {
 	await page.getByText('advanced').click();
 	await page.getByLabel('Categories Duty Roulette').selectOption('HighEndDuty');
 	await page.getByText('advanced').click();
-
-	await page.screenshot({
-		path: `./screenshots/init-web-page-${Date.now()}.png`
-	});
 
 	return page;
 }
@@ -52,19 +108,13 @@ async function filterListings(page: Page, filterTerm: keyof typeof SearchTerms) 
 	await searchbox.click();
 	await searchbox.press('ControlOrMeta+A');
 	await searchbox.pressSequentially(SearchTerms[filterTerm], { delay: 30 });
-
-	await page.screenshot({
-		path: `./screenshots/filter-listings-${Date.now()}.png`
-	});
-
-	return page;
 }
 
 async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 	await page.waitForSelector('#listings .listing');
 
-	const listings = await page.locator('#listings > .listing').evaluateAll((listingNodeements) => {
-		return listingNodeements.map((listingNode) => {
+	const listings = await page.locator('#listings > .listing').evaluateAll((listingNodeElements) => {
+		return listingNodeElements.map((listingNode) => {
 			const duty = listingNode.querySelector('.duty.cross')?.textContent?.trim() ?? '';
 			const creator = listingNode.querySelector('.item.creator .text')?.textContent?.trim() ?? '';
 			const world = listingNode.querySelector('.item.world .text')?.textContent?.trim() ?? '';
@@ -80,6 +130,8 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 					})
 					?.querySelector('.value')
 					?.textContent?.trim() ?? '';
+
+			const normalizedMinIlvl = minIlvl === '0' ? 'unspecified' : minIlvl;
 
 			const descriptionEl = listingNode.querySelector('.description');
 			const pfTagEl = descriptionEl?.querySelector('span');
@@ -139,7 +191,7 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 				duty,
 				description,
 				expires,
-				minIlvl,
+				minIlvl: normalizedMinIlvl,
 				pfTags,
 				party: partySlots,
 				updated,
