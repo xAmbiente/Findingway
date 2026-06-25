@@ -32,11 +32,19 @@ export async function sendPfPost(payload: PostMessagePayload, type: ChannelType)
 			components: [await buildPfPost(payload, type)]
 		};
 
+		let shouldPostNewMessage = !channel.messageId;
+
 		if (channel.messageId) {
 			const oldPostedMessage = await resolveOnErrorCodes(guildChannel.messages.fetch(channel.messageId), RESTJSONErrorCodes.UnknownMessage);
 
-			await oldPostedMessage?.edit(messagePayload as MessageEditOptions);
-		} else {
+			if (oldPostedMessage) {
+				await oldPostedMessage.edit(messagePayload as MessageEditOptions);
+			} else {
+				shouldPostNewMessage = true;
+			}
+		}
+
+		if (shouldPostNewMessage) {
 			const newMessage = await guildChannel.send(messagePayload as MessageCreateOptions);
 			await container.prisma.channel.update({
 				where: {
