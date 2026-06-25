@@ -31,7 +31,7 @@ export enum FindingwayEvents {
 }
 
 export const enum BrandingColors {
-	Primary = 0x6684927
+	Primary = 0xd5c5b4
 }
 
 export const enum LanguageFormatters {
