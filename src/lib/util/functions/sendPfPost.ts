@@ -13,6 +13,8 @@ export async function sendPfPost(payload: PostMessagePayload, type: ChannelType)
 	});
 
 	for (const channel of channelsToPostIn) {
+		if (!channel.enabled) continue;
+
 		const guild = await resolveOnErrorCodes(
 			container.client.guilds.fetch(channel.guildId),
 			RESTJSONErrorCodes.UnknownGuild,
