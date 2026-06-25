@@ -5,7 +5,6 @@ import { Listener } from '@sapphire/framework';
 
 export class UserListener extends Listener<typeof FindingwayEvents.PostTea> {
 	public override async run(payload: PostMessagePayload) {
-		this.container.logger.debug(`PostTea :: processing a new post at ${new Date().toISOString()}`);
 		return sendPfPost(payload, ChannelType.TheEpicOfAlexander);
 	}
 }
