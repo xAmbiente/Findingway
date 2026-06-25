@@ -3,7 +3,11 @@ import { SearchTerms } from '#lib/scraper/constants';
 import type { ListingEntry, Party } from '#lib/scraper/types';
 import { chromium, type Page } from 'playwright';
 
-export async function scrape() {
+export async function scrape(): Promise<{
+	[ChannelType.TheEpicOfAlexander]: ListingEntry[];
+	[ChannelType.TheUnendingCoilOfBahamut]: ListingEntry[];
+	[ChannelType.TheWeaponsRefrain]: ListingEntry[];
+}> {
 	const page = await initWebpage();
 
 	const [teaListings, ucobListings, uwuListings] = await Promise.all([
@@ -51,7 +55,7 @@ async function filterListings(page: Page, filterTerm: keyof typeof SearchTerms) 
 async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 	await page.waitForSelector('#listings .listing');
 
-	return page.locator('#listings > .listing').evaluateAll((listingElements) => {
+	const listings = await page.locator('#listings > .listing').evaluateAll((listingElements) => {
 		return listingElements.map((listingNode) => {
 			const listingEl = listingNode;
 			const duty = listingEl.querySelector('.duty.cross')?.textContent?.trim() ?? '';
@@ -125,5 +129,16 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 			};
 			return result;
 		});
+	});
+
+	const seenCreators = new Set<string>();
+	return listings.filter((listing) => {
+		const normalizedCreator = listing.creator.trim().toLowerCase();
+		if (seenCreators.has(normalizedCreator)) {
+			return false;
+		}
+
+		seenCreators.add(normalizedCreator);
+		return true;
 	});
 }
