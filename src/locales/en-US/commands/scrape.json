@@ -1,4 +1,5 @@
 {
 	"rootName": "scrape",
-	"rootDescription": "Triggers an immediate scrape."
+	"rootDescription": "Triggers an immediate scrape.",
+	"success": "{{GREENTICK}} Scraping success!"
 }

@@ -1,4 +1,5 @@
 import type { prismaType } from '#lib/setup/prisma';
+import type { FindingwayEvents, PostMessagePayload } from '#utils/constants';
 import type { Nullish } from '@sapphire/utilities';
 import type { BooleanString, IntegerString } from '@skyra/env-utilities';
 import type { Events, WebhookClient } from 'discord.js';
@@ -16,6 +17,7 @@ declare module '@sapphire/pieces' {
 declare module '@sapphire/framework' {
 	interface SapphireClient {
 		emit(event: Events.Error, error: Error): boolean;
+		emit(event: FindingwayEvents, payload: PostMessagePayload): boolean;
 	}
 }
 

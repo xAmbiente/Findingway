@@ -130,7 +130,7 @@ function parseInternationalizationOptions(): InternationalizationOptions {
 export const WEBHOOK_ERROR = parseWebhookError();
 
 export const CLIENT_OPTIONS: ClientOptions = {
-	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildScheduledEvents, GatewayIntentBits.GuildMembers],
+	intents: [GatewayIntentBits.Guilds],
 	allowedMentions: { users: [], roles: [] },
 	presence: {
 		activities: [

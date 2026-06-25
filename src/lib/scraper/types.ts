@@ -13,5 +13,5 @@ export interface ListingEntry {
 export interface Party {
 	filled: boolean;
 	title: string;
-	type: 'dps' | 'healer' | 'none' | 'tank';
+	type: 'dps' | 'healer' | 'healerDps' | 'none' | 'tank' | 'tankDps' | 'tankHealer' | 'tankHealerDps';
 }

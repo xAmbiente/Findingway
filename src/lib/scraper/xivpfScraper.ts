@@ -40,6 +40,10 @@ async function initWebpage(): Promise<Page> {
 	await page.getByLabel('Categories Duty Roulette').selectOption('HighEndDuty');
 	await page.getByText('advanced').click();
 
+	await page.screenshot({
+		path: `./screenshots/init-web-page-${Date.now()}.png`
+	});
+
 	return page;
 }
 
@@ -49,23 +53,26 @@ async function filterListings(page: Page, filterTerm: keyof typeof SearchTerms) 
 	await searchbox.press('ControlOrMeta+A');
 	await searchbox.pressSequentially(SearchTerms[filterTerm], { delay: 30 });
 
+	await page.screenshot({
+		path: `./screenshots/filter-listings-${Date.now()}.png`
+	});
+
 	return page;
 }
 
 async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 	await page.waitForSelector('#listings .listing');
 
-	const listings = await page.locator('#listings > .listing').evaluateAll((listingElements) => {
-		return listingElements.map((listingNode) => {
-			const listingEl = listingNode;
-			const duty = listingEl.querySelector('.duty.cross')?.textContent?.trim() ?? '';
-			const creator = listingEl.querySelector('.item.creator .text')?.textContent?.trim() ?? '';
-			const world = listingEl.querySelector('.item.world .text')?.textContent?.trim() ?? '';
-			const expires = listingEl.querySelector('.item.expires .text')?.textContent?.trim() ?? '';
-			const updated = listingEl.querySelector('.item.updated .text')?.textContent?.trim() ?? '';
+	const listings = await page.locator('#listings > .listing').evaluateAll((listingNodeements) => {
+		return listingNodeements.map((listingNode) => {
+			const duty = listingNode.querySelector('.duty.cross')?.textContent?.trim() ?? '';
+			const creator = listingNode.querySelector('.item.creator .text')?.textContent?.trim() ?? '';
+			const world = listingNode.querySelector('.item.world .text')?.textContent?.trim() ?? '';
+			const expires = listingNode.querySelector('.item.expires .text')?.textContent?.trim() ?? '';
+			const updated = listingNode.querySelector('.item.updated .text')?.textContent?.trim() ?? '';
 
 			const minIlvl =
-				Array.from(listingEl.querySelectorAll('.stat'))
+				Array.from(listingNode.querySelectorAll('.stat'))
 					.map((statNode) => statNode)
 					.find((statEl) => {
 						const statName = statEl.querySelector('.name')?.textContent?.trim() ?? '';
@@ -74,7 +81,7 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 					?.querySelector('.value')
 					?.textContent?.trim() ?? '';
 
-			const descriptionEl = listingEl.querySelector('.description');
+			const descriptionEl = listingNode.querySelector('.description');
 			const pfTagEl = descriptionEl?.querySelector('span');
 			const pfTags = pfTagEl?.textContent?.trim() ?? '';
 
@@ -83,14 +90,25 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 				description = description.replace(pfTags, '').trim();
 			}
 
-			const partySlots = Array.from(listingEl.querySelectorAll('.party .slot')).map((slotNode) => {
+			const partySlots = Array.from(listingNode.querySelectorAll('.party .slot')).map((slotNode) => {
 				const slotEl = slotNode;
+				const hasTank = slotEl.classList.contains('tank');
+				const hasHealer = slotEl.classList.contains('healer');
+				const hasDps = slotEl.classList.contains('dps');
 				let type: Party['type'] = 'none';
-				if (slotEl.classList.contains('tank')) {
+				if (hasTank && hasHealer && hasDps) {
+					type = 'tankHealerDps';
+				} else if (hasTank && hasHealer) {
+					type = 'tankHealer';
+				} else if (hasTank && hasDps) {
+					type = 'tankDps';
+				} else if (hasHealer && hasDps) {
+					type = 'healerDps';
+				} else if (hasTank) {
 					type = 'tank';
-				} else if (slotEl.classList.contains('healer')) {
+				} else if (hasHealer) {
 					type = 'healer';
-				} else if (slotEl.classList.contains('dps')) {
+				} else if (hasDps) {
 					type = 'dps';
 				}
 
@@ -101,7 +119,7 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 				};
 			});
 
-			const totalText = listingEl.querySelector('.party .total')?.textContent?.trim() ?? '';
+			const totalText = listingNode.querySelector('.party .total')?.textContent?.trim() ?? '';
 			const totalRegex = /^\d+\s*\/\s*(?<totalAvailable>\d+)$/;
 			const totalMatch = totalRegex.exec(totalText);
 			const totalAvailable = totalMatch?.groups?.totalAvailable ? Number.parseInt(totalMatch.groups.totalAvailable, 10) : 8;

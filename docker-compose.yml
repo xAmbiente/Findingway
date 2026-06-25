@@ -1,6 +1,20 @@
 services:
+  redis:
+    command: 'redis-server --requirepass redis'
+    container_name: findingway-redis
+    image: 'redis:alpine'
+    networks:
+      - findingway
+    ports:
+      - '6379:6379'
+    restart: always
+    logging:
+      options:
+        max-size: '20m'
+        max-file: '3'
+
   postgres:
-    container_name: postgres
+    container_name: findingway-postgres
     image: postgres:18-alpine
     networks:
       - findingway
@@ -39,8 +53,9 @@ services:
       - findingway
     restart: always
     tty: true
-    volumes:
-      - src/config.yaml:/findingway/config.yaml:ro  # hot-reload friendly
 
 networks:
   findingway:
+
+volumes:
+  postgres-data:

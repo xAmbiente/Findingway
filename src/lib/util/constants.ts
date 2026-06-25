@@ -1,3 +1,5 @@
+import type { ListingEntry } from '#lib/scraper/types';
+
 export const rootFolder = new URL('../../../', import.meta.url);
 
 /**
@@ -21,22 +23,15 @@ export const braillePatternBlank = String.fromCodePoint(10_240);
  */
 export const zeroWidthSpace = String.fromCodePoint(8_203);
 
-export const enum XIVServers {
-	Aether = 'aether',
-	Chaos = 'chaos',
-	Crystal = 'crystal',
-	Dynamis = 'dynamis',
-	Elemental = 'elemental',
-	Gaia = 'gaia',
-	Light = 'light',
-	Mana = 'mana',
-	Materia = 'materia',
-	Meteor = 'Meteor',
-	Primal = 'primal'
+export enum FindingwayEvents {
+	PostMerc = 'postMerc',
+	PostTea = 'postTea',
+	PostUcob = 'postUcob',
+	PostUwu = 'postUwu'
 }
 
 export const enum BrandingColors {
-	Primary = 0xbb77ea
+	Primary = 0x6684927
 }
 
 export const enum LanguageFormatters {
@@ -52,7 +47,10 @@ export const enum ErrorIdentifiers {
 	SetNoChannelConfigured = 'SetNoChannelConfigured'
 }
 
-export const enum CustomIdPrefixes {}
+export interface PostMessagePayload {
+	entries: ListingEntry[];
+	timeOfScrape: number;
+}
 
 export type Classes = 'Arcanist' | 'Archer' | 'Conjurer' | 'Gladiator' | 'Lancer' | 'Marauder' | 'Pugilist' | 'Rogue' | 'Thaumaturge';
 

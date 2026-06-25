@@ -9,7 +9,7 @@
 	"compilerOptions": {
 		"incremental": false,
 		"noEmit": true,
-		"lib": ["DOM"],
+		"lib": ["ES2025", "DOM"],
 		"types": ["node"]
 	}
 }

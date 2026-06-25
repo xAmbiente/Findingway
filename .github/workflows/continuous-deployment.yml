@@ -5,12 +5,7 @@ on:
     branches:
       - master
     paths:
-      - 'internal/**'
-      - 'config.yaml'
-      - 'findingway.db'
-      - 'go.mod'
-      - 'go.sum'
-      - 'main.go'
+      - 'src/**'
       - 'Dockerfile'
       - '.github/workflows/continuous-deployment.yml'
   workflow_dispatch:
