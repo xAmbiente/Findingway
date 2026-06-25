@@ -1121,6 +1121,29 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@playwright/mcp@npm:^0.0.76":
+  version: 0.0.76
+  resolution: "@playwright/mcp@npm:0.0.76"
+  dependencies:
+    playwright: "npm:1.61.0-alpha-1781023400000"
+    playwright-core: "npm:1.61.0-alpha-1781023400000"
+  bin:
+    playwright-mcp: cli.js
+  checksum: 10/92849e8e0cf656f45914f990def3c6115889dedd96a76a2b795290109243d7f08c1fd322c2f3633cb3d45b2361fc7108766e5ef9c7b40990945c90110b3910a8
+  languageName: node
+  linkType: hard
+
+"@playwright/test@npm:^1.61.1":
+  version: 1.61.1
+  resolution: "@playwright/test@npm:1.61.1"
+  dependencies:
+    playwright: "npm:1.61.1"
+  bin:
+    playwright: cli.js
+  checksum: 10/08915357031e1bc273a19bb428fb7e51031ca44f25750832e389bcd69c399f6a243f5f832e7832d46153b57b1305f1f5f5dd63f3a3261f928f61e464c6b3c64e
+  languageName: node
+  linkType: hard
+
 "@prisma/adapter-pg@npm:^7.8.0":
   version: 7.8.0
   resolution: "@prisma/adapter-pg@npm:7.8.0"
@@ -4914,6 +4937,8 @@ __metadata:
   resolution: "findingway@workspace:."
   dependencies:
     "@favware/discord-application-emojis-manager": "npm:^1.1.1"
+    "@playwright/mcp": "npm:^0.0.76"
+    "@playwright/test": "npm:^1.61.1"
     "@prisma/adapter-pg": "npm:^7.8.0"
     "@prisma/client": "npm:^7.8.0"
     "@sapphire/decorators": "npm:^6.2.0"
@@ -4948,6 +4973,7 @@ __metadata:
     gradient-string: "npm:^3.0.0"
     i18next: "npm:^26.3.1"
     lint-staged: "npm:^17.0.8"
+    playwright: "npm:^1.61.1"
     prettier: "npm:^3.8.4"
     prettier-plugin-prisma: "npm:^5.0.0"
     prisma: "npm:^7.8.0"
@@ -4992,6 +5018,25 @@ __metadata:
     cross-spawn: "npm:^7.0.6"
     signal-exit: "npm:^4.0.1"
   checksum: 10/427b33f997a98073c0424e5c07169264a62cda806d8d2ded159b5b903fdfc8f0a1457e06b5fc35506497acb3f1e353f025edee796300209ac6231e80edece835
+  languageName: node
+  linkType: hard
+
+"fsevents@npm:2.3.2":
+  version: 2.3.2
+  resolution: "fsevents@npm:2.3.2"
+  dependencies:
+    node-gyp: "npm:latest"
+  checksum: 10/6b5b6f5692372446ff81cf9501c76e3e0459a4852b3b5f1fc72c103198c125a6b8c72f5f166bdd76ffb2fca261e7f6ee5565daf80dca6e571e55bcc589cc1256
+  conditions: os=darwin
+  languageName: node
+  linkType: hard
+
+"fsevents@patch:fsevents@npm%3A2.3.2#optional!builtin<compat/fsevents>":
+  version: 2.3.2
+  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#optional!builtin<compat/fsevents>::version=2.3.2&hash=df0bf1"
+  dependencies:
+    node-gyp: "npm:latest"
+  conditions: os=darwin
   languageName: node
   linkType: hard
 
@@ -7429,6 +7474,54 @@ __metadata:
     exsolve: "npm:^1.0.8"
     pathe: "npm:^2.0.3"
   checksum: 10/59d892b5e18b319a66e745214b66bc68a77c6eccc4bf955582775aa393f79a6a29495184233d71e10a986e9346e44d72f5957d2d0e7104cb0d6ef43b4e92a969
+  languageName: node
+  linkType: hard
+
+"playwright-core@npm:1.61.0-alpha-1781023400000":
+  version: 1.61.0-alpha-1781023400000
+  resolution: "playwright-core@npm:1.61.0-alpha-1781023400000"
+  bin:
+    playwright-core: cli.js
+  checksum: 10/e7a581f9a29ca0e5454beafef3915386e25f99644d725a7df7f83f24cfadc438825320b94aa7ec13ce5fa6bebf77a013442828657f4ec02c84fbbb5749911909
+  languageName: node
+  linkType: hard
+
+"playwright-core@npm:1.61.1":
+  version: 1.61.1
+  resolution: "playwright-core@npm:1.61.1"
+  bin:
+    playwright-core: cli.js
+  checksum: 10/b0e7b1d4de7ca6c1a57eb88f1709609a8b7637092f149e703d84d6c8e01835992ec5ca26b86f1a32fb5f5bc1aad042c3ae27311e131b3dda8a27824a543eb3c7
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.61.0-alpha-1781023400000":
+  version: 1.61.0-alpha-1781023400000
+  resolution: "playwright@npm:1.61.0-alpha-1781023400000"
+  dependencies:
+    fsevents: "npm:2.3.2"
+    playwright-core: "npm:1.61.0-alpha-1781023400000"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  bin:
+    playwright: cli.js
+  checksum: 10/cd228fdee3cca0440e8a4f2c11889f235cf10cd5b32f06a7358f11b3a098b966a81c11c7f2c067e29a292ed356973afa57925efe27d8c16a78cdc0042a3bb7ce
+  languageName: node
+  linkType: hard
+
+"playwright@npm:1.61.1, playwright@npm:^1.61.1":
+  version: 1.61.1
+  resolution: "playwright@npm:1.61.1"
+  dependencies:
+    fsevents: "npm:2.3.2"
+    playwright-core: "npm:1.61.1"
+  dependenciesMeta:
+    fsevents:
+      optional: true
+  bin:
+    playwright: cli.js
+  checksum: 10/0cd1a8a7e106202e785450763973bf326d4aa112ed195bbd78b17af43dcfd12e29bc8204ae61c88f748dd0f2bdf69a7827bc3bbf8c1ec4c71b8e35586e05f13c
   languageName: node
   linkType: hard
 

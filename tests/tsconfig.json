@@ -1,0 +1,13 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"incremental": false,
+		"paths": {
+			"#utils/*": ["../src/lib/util/*"],
+			"#lib/*": ["../src/lib/*"],
+			"#root/*": ["../src/*"]
+		}
+	},
+	"include": ["./"]
+}

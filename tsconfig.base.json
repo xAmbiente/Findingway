@@ -8,6 +8,8 @@
 	],
 	"compilerOptions": {
 		"incremental": false,
-		"noEmit": true
+		"noEmit": true,
+		"lib": ["DOM"],
+		"types": ["node"]
 	}
 }
