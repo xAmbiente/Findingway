@@ -211,7 +211,15 @@ function parseRelativeUpdatedAgeSeconds(updated: string): number {
 	if (verboseMatch?.groups) {
 		const amount = Number.parseInt(verboseMatch.groups.amount, 10);
 		const unit = verboseMatch.groups.unit;
-		const shortUnit = unit === 'second' ? 's' : unit === 'minute' ? 'm' : 'h';
+		let shortUnit: string;
+		if (unit === 'second') {
+			shortUnit = 's';
+		} else if (unit === 'minute') {
+			shortUnit = 'm';
+		} else {
+			shortUnit = 'h';
+		}
+
 		const multiplier = getTimeUnitSeconds(shortUnit);
 		return amount * multiplier;
 	}
