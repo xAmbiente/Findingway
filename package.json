@@ -84,5 +84,8 @@
 		"*": "prettier --ignore-unknown --write",
 		"*.{mjs,js,ts}": "eslint --fix"
 	},
-	"packageManager": "yarn@4.17.0"
+	"packageManager": "yarn@4.17.0",
+	"volta": {
+		"node": "24.18.0"
+	}
 }
