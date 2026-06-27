@@ -36,7 +36,8 @@ The mercantile feed currently matches these keywords: `merc`, `mercenary`, `carr
 - Redis
 - A Discord application with a bot token
 
-> [!IMPORTANT] The bot expects the following environment variables at runtime:
+> [!IMPORTANT]
+> The bot expects the following environment variables at runtime:
 >
 > - `DISCORD_TOKEN`
 > - `DATABASE_URL`
