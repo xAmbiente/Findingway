@@ -7,7 +7,8 @@ Findingway is a Discord bot that watches [XIVPF](https://xivpf.com) for Final Fa
 posts them into configured Discord channels. It keeps a single message per channel updated in place, so the listings
 stay current without flooding chat.
 
-> [!NOTE] The bot scrapes XIVPF with Playwright, stores channel configuration in PostgreSQL through Prisma, and uses
+> [!NOTE]
+> The bot scrapes XIVPF with Playwright, stores channel configuration in PostgreSQL through Prisma, and uses
 > Redis-backed scheduled tasks for periodic updates.
 
 ## What It Does
