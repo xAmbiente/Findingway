@@ -46,7 +46,7 @@ COPY --chown=node:node --from=builder /usr/src/app/src/locales src/locales
 COPY --chown=node:node --from=builder /usr/src/app/prisma.config.ts prisma.config.ts
 
 RUN yarn workspaces focus --all --production && \
-    yarn playwright install --with-deps chromium-headless-shell
+    yarn playwright install --with-deps
 
 LABEL org.opencontainers.image.title="Findingway"
 LABEL org.opencontainers.image.description="FFXIV Party Finder Discord bot"
