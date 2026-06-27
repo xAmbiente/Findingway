@@ -12,7 +12,7 @@
 			"email": "support@favware.tech"
 		}
 	],
-	"license": "MIT",
+	"license": "Apache-2.0",
 	"module": "dist/findingway.mjs",
 	"private": true,
 	"type": "module",
