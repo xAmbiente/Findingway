@@ -15,7 +15,7 @@ jobs:
     name: Typecheck
     uses: sapphiredev/.github/.github/workflows/reusable-yarn-job.yml@main
     with:
-      script-name: prisma:generate && yarn typecheck
+      script-name: prisma generate && yarn typecheck
 
   build:
     name: Building

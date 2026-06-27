@@ -26,7 +26,6 @@
 		"start": "node --preserve-symlinks --enable-source-maps dist/findingway.mjs",
 		"lint": "eslint --fix",
 		"format": "prettier --write .",
-		"prisma:generate": "prisma generate",
 		"build": "tsdown",
 		"watch": "tsdown --watch",
 		"clean": "rimraf dist/",

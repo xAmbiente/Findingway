@@ -67,7 +67,7 @@ The mercantile feed currently matches these keywords: `merc`, `mercenary`, `carr
 4. Generate the Prisma client.
 
     ```bash
-    yarn prisma:generate
+    yarn prisma generate
     ```
 
 5. Start the bot.
@@ -133,4 +133,3 @@ docker compose up --build
 - `yarn lint` - lint and fix source files
 - `yarn format` - format the repository with Prettier
 - `yarn typecheck` - run the TypeScript project build check
-- `yarn prisma:generate` - regenerate the Prisma client

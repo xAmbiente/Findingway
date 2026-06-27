@@ -28,11 +28,12 @@ COPY --chown=node:node tsconfig.base.json tsconfig.base.json
 COPY --chown=node:node tsdown.config.ts .
 COPY --chown=node:node playwright.config.ts .
 COPY --chown=node:node prisma.config.ts .
+COPY --chown=node:node .env .env
 COPY --chown=node:node prisma/ prisma/
 COPY --chown=node:node src/ src/
 
 RUN yarn install --immutable \
-    && yarn run prisma:generate \
+    && yarn prisma generate \
     && yarn run build
 
 FROM base AS runner
@@ -40,7 +41,7 @@ FROM base AS runner
 ENV NODE_ENV="production"
 ENV NODE_OPTIONS="--enable-source-maps"
 
-COPY --chown=node:node .env .env
+COPY --chown=node:node --from=builder /usr/src/app/.env .env
 COPY --chown=node:node --from=builder /usr/src/app/dist dist
 COPY --chown=node:node --from=builder /usr/src/app/src/locales src/locales
 COPY --chown=node:node --from=builder /usr/src/app/playwright.config.ts playwright.config.ts
