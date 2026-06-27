@@ -8,12 +8,10 @@ export async function scrape(): Promise<{ [key in ChannelType]: ListingEntry[] }
 	const browser = await chromium.launch();
 
 	try {
-		const [teaListings, ucobListings, uwuListings, mercListings] = await Promise.all([
-			scrapeListingsForFilterTerm(browser, 'The Epic of Alexander'),
-			scrapeListingsForFilterTerm(browser, 'The Unending Coil of Bahamut'),
-			scrapeListingsForFilterTerm(browser, "The Weapon's Refrain"),
-			scrapeListingsForFilterTerms(browser, mercKeywords)
-		]);
+		const teaListings = await scrapeListingsForFilterTerm(browser, 'The Epic of Alexander');
+		const ucobListings = await scrapeListingsForFilterTerm(browser, 'The Unending Coil of Bahamut');
+		const uwuListings = await scrapeListingsForFilterTerm(browser, "The Weapon's Refrain");
+		const mercListings = await scrapeListingsForFilterTerms(browser, mercKeywords);
 
 		return {
 			[ChannelType.TheEpicOfAlexander]: sortAndLimitListingsByUpdated(teaListings),
@@ -41,11 +39,10 @@ async function scrapeListingsForFilterTerm(browser: Browser, filterTerm: string)
 }
 
 async function scrapeListingsForFilterTerms(browser: Browser, filterTerms: string[]): Promise<ListingEntry[]> {
-	const listingsByTerm = await Promise.all(
-		filterTerms.map(async (filterTerm) => {
-			return scrapeListingsForFilterTerm(browser, filterTerm);
-		})
-	);
+	const listingsByTerm: ListingEntry[][] = [];
+	for (const filterTerm of filterTerms) {
+		listingsByTerm.push(await scrapeListingsForFilterTerm(browser, filterTerm));
+	}
 
 	return listingsByTerm.flat();
 }
