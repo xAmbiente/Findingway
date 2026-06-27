@@ -14,11 +14,13 @@ export async function scrape(): Promise<{ [key in ChannelType]: ListingEntry[] }
 		const mercListings = await scrapeListingsForFilterTerms(browser, mercKeywords);
 
 		return {
-			[ChannelType.TheEpicOfAlexander]: sortAndLimitListingsByUpdated(teaListings),
-			[ChannelType.TheUnendingCoilOfBahamut]: sortAndLimitListingsByUpdated(ucobListings),
-			[ChannelType.TheWeaponsRefrain]: sortAndLimitListingsByUpdated(uwuListings),
+			[ChannelType.TheEpicOfAlexander]: sortAndLimitListingsByUpdated(uniqueifyListings(teaListings)),
+			[ChannelType.TheUnendingCoilOfBahamut]: sortAndLimitListingsByUpdated(uniqueifyListings(ucobListings)),
+			[ChannelType.TheWeaponsRefrain]: sortAndLimitListingsByUpdated(uniqueifyListings(uwuListings)),
 			[ChannelType.Mercantile]: sortAndLimitListingsByUpdated(
-				mercListings.filter((listing) => mercKeywords.some((keyword) => listing.description.toLowerCase().includes(keyword)))
+				uniqueifyListings(
+					mercListings.filter((listing) => mercKeywords.some((keyword) => listing.description.toLowerCase().includes(keyword)))
+				)
 			)
 		};
 	} finally {
@@ -165,27 +167,29 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 		});
 	});
 
-	const seenCreators = new Set<string>();
-	return listings
-		.filter((listing) => {
-			const normalizedCreator = listing.creator.trim().toLowerCase();
-			if (seenCreators.has(normalizedCreator)) {
-				return false;
-			}
+	return listings.map((listing) => {
+		container.logger.debug(
+			`Building post for ${listing.duty} from ${listing.creator} with updated ${listing.updated} and parsed ${parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)}`
+		);
+		return {
+			...listing,
+			expires: parseRelativeExpiresToUnixTimestamp(listing.expires, nowUnixTimestamp),
+			updated: parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)
+		};
+	});
+}
 
-			seenCreators.add(normalizedCreator);
-			return true;
-		})
-		.map((listing) => {
-			container.logger.debug(
-				`Building post for ${listing.duty} from ${listing.creator} with updated ${listing.updated} and parsed ${parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)}`
-			);
-			return {
-				...listing,
-				expires: parseRelativeExpiresToUnixTimestamp(listing.expires, nowUnixTimestamp),
-				updated: parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)
-			};
-		});
+function uniqueifyListings(listings: ListingEntry[]): ListingEntry[] {
+	const seenCreators = new Set<string>();
+	return listings.filter((listing) => {
+		const normalizedCreator = listing.creator.trim().toLowerCase();
+		if (seenCreators.has(normalizedCreator)) {
+			return false;
+		}
+
+		seenCreators.add(normalizedCreator);
+		return true;
+	});
 }
 
 function sortAndLimitListingsByUpdated(listings: ListingEntry[]): ListingEntry[] {
