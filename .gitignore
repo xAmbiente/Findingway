@@ -1,15 +1,38 @@
-# IDE and Golang black hole
+# Ignore a blackhole and the folder for development
+/.vs
 /.vs/NewRepo.slnx/FileContentIndex/dbb741e2-c7cc-49dc-aeaa-adb8ca1b0c6e.vsidx
 /.vs/NewRepo.slnx/v18
 /.vs/NewRepo.slnx/FileContentIndex
 /.vs/slnx.sqlite
 /.vs/Findingway2.slnx/FileContentIndex
+/.vs/CopilotSnapshots/330C891E410A4F40847164CCE1EE4109
 .idea/
 vendor/
+node_modules/
+.vs/
+.idea/
+*.iml
 
-# Output files
-findingway
-findingway.exe
-coverage.out
-/.vs/CopilotSnapshots/330C891E410A4F40847164CCE1EE4109
-/.vs
+# Yarn files
+.yarn/install-state.gz
+.yarn/build-state.yml
+
+# Ignore the dist output
+dist/
+.swc/
+
+# Ignore heapsnapshot and log files
+*.heapsnapshot
+*.log
+
+# Ignore package locks
+package-lock.json
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Prisma generated files
+src/lib/generated/

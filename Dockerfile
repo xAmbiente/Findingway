@@ -1,34 +1,59 @@
-# ── Stage 1: build ────────────────────────────────────────────────────────────
-FROM golang:1.22.1-alpine AS builder
+FROM node:24-bullseye-slim AS base
 
-WORKDIR /src
-COPY go.mod go.sum ./
-RUN go mod download
+WORKDIR /usr/src/app
 
-COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-w -s" -o findingway .
+ENV YARN_DISABLE_GIT_HOOKS=1
+ENV CI=true
+ENV FORCE_COLOR=true
 
-# ── Stage 2: runtime ──────────────────────────────────────────────────────────
-FROM alpine:3.19.1
+RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
+    apt-get install -y --no-install-recommends build-essential dumb-init python3 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* && \
+    apt-get autoremove
+
+COPY --chown=node:node yarn.lock .
+COPY --chown=node:node package.json .
+COPY --chown=node:node .yarnrc.yml .
+COPY --chown=node:node .yarn/ .yarn/
+
+ENTRYPOINT ["dumb-init", "--"]
+
+FROM base AS builder
+
+ENV NODE_ENV="development"
+
+COPY --chown=node:node tsconfig.base.json tsconfig.base.json
+COPY --chown=node:node tsdown.config.ts .
+COPY --chown=node:node playwright.config.ts .
+COPY --chown=node:node prisma.config.ts .
+COPY --chown=node:node prisma/ prisma/
+COPY --chown=node:node src/ src/
+
+RUN yarn install --immutable \
+    && yarn run prisma:generate \
+    && yarn run build
+
+FROM base AS runner
+
+ENV NODE_ENV="production"
+ENV NODE_OPTIONS="--enable-source-maps"
+
+COPY --chown=node:node .env .env
+COPY --chown=node:node --from=builder /usr/src/app/dist dist
+COPY --chown=node:node --from=builder /usr/src/app/src/locales src/locales
+COPY --chown=node:node --from=builder /usr/src/app/playwright.config.ts playwright.config.ts
+COPY --chown=node:node --from=builder /usr/src/app/prisma.config.ts prisma.config.ts
+
+RUN yarn workspaces focus --all --production && \
+    yarn playwright install --with-deps chromium
 
 LABEL org.opencontainers.image.title="Findingway"
 LABEL org.opencontainers.image.description="FFXIV Party Finder Discord bot"
 
-WORKDIR /findingway
+RUN chown node:node /usr/src/app/
 
-# Create directories for persistent data and logs
-RUN mkdir -p /findingway/data /findingway/logs
+USER node
 
-COPY --from=builder /src/findingway .
-COPY config.yaml .
-
-# Persist the SQLite DB and log files on the host
-VOLUME ["/findingway/data", "/findingway/logs"]
-
-ENV DB_PATH=/findingway/data/findingway.db
-ENV LOG_PATH=/findingway/logs/findingway.log
-ENV CONFIG_PATH=/findingway/config.yaml
-
-# DISCORD_TOKEN must be supplied at runtime via -e or docker-compose
-ENTRYPOINT ["/findingway/findingway"]
+CMD [ "yarn", "run", "start" ]

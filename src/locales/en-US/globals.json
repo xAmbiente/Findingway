@@ -1,0 +1,11 @@
+{
+	"default": "{{key}} has not been localized for en-US yet.",
+	"defaultLanguage": "Default Language",
+	"numberValue": "{{value, number}}",
+	"dateValue": "{{value, date}}",
+	"timeValue": "{{value, time}}",
+	"andListValue": "{{value, list(conjunction)}}",
+	"relativeTimeValue": "{{value, relativeTime}}",
+	"duration_one": "{{count}} hour",
+	"duration_other": "{{count}} hours"
+}

@@ -1,0 +1,27 @@
+generator client {
+    provider = "prisma-client"
+    output   = "../src/lib/generated/prisma-client"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum ChannelType {
+    Mercantile               @map("merc")
+    TheWeaponsRefrain        @map("uwu")
+    TheUnendingCoilOfBahamut @map("ucob")
+    TheEpicOfAlexander       @map("tea")
+}
+
+model Channel {
+    id        String      @id @default(cuid())
+    type      ChannelType
+    channelId String      @map("channel_id")
+    guildId   String      @map("guild_id")
+    enabled   Boolean     @default(true)
+    messageId String?     @map("message_id")
+
+    @@unique([type, guildId])
+    @@map("channels")
+}
