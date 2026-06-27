@@ -24,6 +24,10 @@ export async function buildPfPost({ entries, timeOfScrape }: PostMessagePayload,
 	for (const [index, entry] of entries.entries()) {
 		const minIlvl = await resolveKey(null!, `pfposts:minilvl`, { lng: 'en-US', minilvl: entry.minIlvl });
 
+		if (type === ChannelType.Mercantile) {
+			container.addTextDisplayComponents((textDisplay) => textDisplay.setContent(bold(entry.duty)));
+		}
+
 		const row = container.addTextDisplayComponents(
 			(textDisplay) =>
 				textDisplay.setContent(
