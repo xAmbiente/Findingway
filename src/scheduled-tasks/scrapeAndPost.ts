@@ -23,5 +23,6 @@ export class UserScheduledTask extends ScheduledTask {
 		this.container.client.emit(FindingwayEvents.PostTea, { entries: scrapeJson.TheEpicOfAlexander, timeOfScrape });
 		this.container.client.emit(FindingwayEvents.PostUcob, { entries: scrapeJson.TheUnendingCoilOfBahamut, timeOfScrape });
 		this.container.client.emit(FindingwayEvents.PostUwu, { entries: scrapeJson.TheWeaponsRefrain, timeOfScrape });
+		this.container.client.emit(FindingwayEvents.PostMerc, { entries: scrapeJson.Mercantile, timeOfScrape });
 	}
 }

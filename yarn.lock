@@ -1133,17 +1133,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@playwright/test@npm:^1.61.1":
-  version: 1.61.1
-  resolution: "@playwright/test@npm:1.61.1"
-  dependencies:
-    playwright: "npm:1.61.1"
-  bin:
-    playwright: cli.js
-  checksum: 10/08915357031e1bc273a19bb428fb7e51031ca44f25750832e389bcd69c399f6a243f5f832e7832d46153b57b1305f1f5f5dd63f3a3261f928f61e464c6b3c64e
-  languageName: node
-  linkType: hard
-
 "@prisma/adapter-pg@npm:^7.8.0":
   version: 7.8.0
   resolution: "@prisma/adapter-pg@npm:7.8.0"
@@ -4931,7 +4920,6 @@ __metadata:
   dependencies:
     "@favware/discord-application-emojis-manager": "npm:^1.1.1"
     "@playwright/mcp": "npm:^0.0.76"
-    "@playwright/test": "npm:^1.61.1"
     "@prisma/adapter-pg": "npm:^7.8.0"
     "@prisma/client": "npm:^7.8.0"
     "@sapphire/decorators": "npm:^6.2.0"
@@ -7502,7 +7490,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"playwright@npm:1.61.1, playwright@npm:^1.61.1":
+"playwright@npm:^1.61.1":
   version: 1.61.1
   resolution: "playwright@npm:1.61.1"
   dependencies:

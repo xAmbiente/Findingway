@@ -1,42 +1,53 @@
 import { ChannelType } from '#lib/generated/prisma-client/enums';
-import { SearchTerms } from '#lib/scraper/constants';
 import type { ListingEntry, Party } from '#lib/scraper/types';
+import { container } from '@sapphire/framework';
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright';
 
-export async function scrape(): Promise<{
-	[ChannelType.TheEpicOfAlexander]: ListingEntry[];
-	[ChannelType.TheUnendingCoilOfBahamut]: ListingEntry[];
-	[ChannelType.TheWeaponsRefrain]: ListingEntry[];
-}> {
+const mercKeywords = ['merc', 'mercenary', 'carry', 'gil', 'payment', 'paid', 'boost', 'sell', 'selling', 'pay', 'fee', 'wage', 'commission'];
+export async function scrape(): Promise<{ [key in ChannelType]: ListingEntry[] }> {
 	const browser = await chromium.launch();
 
 	try {
-		const [teaListings, ucobListings, uwuListings] = await Promise.all([
-			scrapeListingsForDuty(browser, ChannelType.TheEpicOfAlexander),
-			scrapeListingsForDuty(browser, ChannelType.TheUnendingCoilOfBahamut),
-			scrapeListingsForDuty(browser, ChannelType.TheWeaponsRefrain)
+		const [teaListings, ucobListings, uwuListings, mercListings] = await Promise.all([
+			scrapeListingsForFilterTerm(browser, 'The Epic of Alexander'),
+			scrapeListingsForFilterTerm(browser, 'The Unending Coil of Bahamut'),
+			scrapeListingsForFilterTerm(browser, "The Weapon's Refrain"),
+			scrapeListingsForFilterTerms(browser, mercKeywords)
 		]);
 
 		return {
 			[ChannelType.TheEpicOfAlexander]: sortAndLimitListingsByUpdated(teaListings),
 			[ChannelType.TheUnendingCoilOfBahamut]: sortAndLimitListingsByUpdated(ucobListings),
-			[ChannelType.TheWeaponsRefrain]: sortAndLimitListingsByUpdated(uwuListings)
+			[ChannelType.TheWeaponsRefrain]: sortAndLimitListingsByUpdated(uwuListings),
+			[ChannelType.Mercantile]: sortAndLimitListingsByUpdated(
+				mercListings.filter((listing) => mercKeywords.some((keyword) => listing.description.toLowerCase().includes(keyword)))
+			)
 		};
 	} finally {
 		await browser.close();
 	}
 }
 
-async function scrapeListingsForDuty(browser: Browser, duty: keyof typeof SearchTerms): Promise<ListingEntry[]> {
+async function scrapeListingsForFilterTerm(browser: Browser, filterTerm: string): Promise<ListingEntry[]> {
 	const context = await browser.newContext();
 
 	try {
 		const page = await initWebpage(context);
-		await filterListings(page, duty);
+		await filterListings(page, filterTerm);
 		return await getListingAsJson(page);
 	} finally {
 		await context.close();
 	}
+}
+
+async function scrapeListingsForFilterTerms(browser: Browser, filterTerms: string[]): Promise<ListingEntry[]> {
+	const listingsByTerm = await Promise.all(
+		filterTerms.map(async (filterTerm) => {
+			return scrapeListingsForFilterTerm(browser, filterTerm);
+		})
+	);
+
+	return listingsByTerm.flat();
 }
 
 async function initWebpage(browserOrContext: BrowserContext): Promise<Page> {
@@ -53,18 +64,24 @@ async function initWebpage(browserOrContext: BrowserContext): Promise<Page> {
 	return page;
 }
 
-async function filterListings(page: Page, filterTerm: keyof typeof SearchTerms) {
+async function filterListings(page: Page, filterTerm: string) {
 	const searchbox = page.getByRole('searchbox', { name: 'search' });
 	await searchbox.click();
 	await searchbox.press('ControlOrMeta+A');
-	await searchbox.pressSequentially(SearchTerms[filterTerm], { delay: 30 });
+	await searchbox.pressSequentially(filterTerm, { delay: 30 });
 }
 
 async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
-	await page.waitForSelector('#listings .listing');
+	await page.waitForSelector('#listings');
+
+	const listingElements = page.locator('#listings > .listing');
+	if ((await listingElements.count()) === 0) {
+		return [];
+	}
+
 	const nowUnixTimestamp = Math.floor(Date.now() / 1_000);
 
-	const listings = await page.locator('#listings > .listing').evaluateAll((listingNodeElements) => {
+	const listings = await listingElements.evaluateAll((listingNodeElements) => {
 		return listingNodeElements.map((listingNode) => {
 			const duty = listingNode.querySelector('.duty.cross')?.textContent?.trim() ?? '';
 			const creator = listingNode.querySelector('.item.creator .text')?.textContent?.trim() ?? '';
@@ -163,7 +180,7 @@ async function getListingAsJson(page: Page): Promise<ListingEntry[]> {
 			return true;
 		})
 		.map((listing) => {
-			console.log(
+			container.logger.debug(
 				`Building post for ${listing.duty} from ${listing.creator} with updated ${listing.updated} and parsed ${parseRelativeUpdatedToUnixTimestamp(listing.updated, nowUnixTimestamp)}`
 			);
 			return {

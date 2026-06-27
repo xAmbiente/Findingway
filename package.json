@@ -60,7 +60,6 @@
 	"devDependencies": {
 		"@favware/discord-application-emojis-manager": "^1.1.1",
 		"@playwright/mcp": "^0.0.76",
-		"@playwright/test": "^1.61.1",
 		"@sapphire/prettier-config": "^2.0.0",
 		"@sapphire/ts-config": "^5.0.3",
 		"@swc/core": "^1.15.43",

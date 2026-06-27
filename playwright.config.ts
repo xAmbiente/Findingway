@@ -1,11 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-	testDir: './tests',
 	fullyParallel: true,
 	retries: 0,
-	workers: 1,
-	reporter: 'html',
+	workers: 4,
 	use: { trace: 'on-first-retry' },
 	projects: [
 		{

@@ -2,7 +2,8 @@
 	"title": {
 		"TheWeaponsRefrain": "The Weapon's Refrain (Ultimate)",
 		"TheUnendingCoilOfBahamut": "The Unending Coil of Bahamut (Ultimate)",
-		"TheEpicOfAlexander": "The Epic of Alexander (Ultimate)"
+		"TheEpicOfAlexander": "The Epic of Alexander (Ultimate)",
+		"Mercantile": "⚠️ Possible merc/paid party listing"
 	},
 	"pfs": "PFs",
 	"minilvl": "Min Ilvl {{minilvl}}"
