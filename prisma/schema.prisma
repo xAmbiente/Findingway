@@ -25,3 +25,13 @@ model Channel {
     @@unique([type, guildId])
     @@map("channels")
 }
+
+model GuildMember {
+    id        String   @id @default(cuid())
+    guildId   String   @map("guild_id")
+    userId    String   @map("user_id")
+    boostRedeemDate DateTime @map("boost_redeem_date")
+
+    @@unique([guildId, userId])
+    @@map("guild_members")
+}

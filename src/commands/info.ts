@@ -186,7 +186,7 @@ interface StatsUsage {
 	ramUsed: string;
 }
 
-export interface EmbedTranslationHeaders {
+interface EmbedTranslationHeaders {
 	stats: {
 		channels: string;
 		discordjs: string;
