@@ -1,5 +1,5 @@
 import { BrandingColors } from '#utils/constants';
-import { BOOST_PERK_REDEEM_BUTTON_CUSTOM_ID } from '#utils/constants/boost-perk';
+import { BOOST_PERK_PAYOUT_COORDINATOR_ID, BOOST_PERK_REDEEM_BUTTON_CUSTOM_ID } from '#utils/constants/boost-perk';
 import { getBoostPerkRedeemStatus, runBoostPerkRedeemFlow } from '#utils/functions/boostPerk';
 import { ApplyOptions, RegisterChatInputCommand } from '@sapphire/decorators';
 import { isGuildMember } from '@sapphire/discord.js-utilities';
@@ -27,6 +27,14 @@ export class SlashCommand extends Command {
 		}
 
 		const subcommand = interaction.options.getSubcommand(true) as 'check' | 'redeem';
+
+		if (interaction.user.id === BOOST_PERK_PAYOUT_COORDINATOR_ID) {
+			const messageKey = subcommand === 'check' ? 'commands/boost-perk:checkNotEligible' : 'commands/boost-perk:redeemNotEligible';
+
+			return interaction.editReply({
+				content: await resolveKey(interaction, messageKey)
+			});
+		}
 
 		switch (subcommand) {
 			case 'check':

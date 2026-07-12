@@ -1,6 +1,11 @@
 import { Owners } from '#root/config';
 import { BrandingColors } from '#utils/constants';
-import { BOOST_PERK_REDEMPTION_CHANNEL_ID, BOOST_PERK_WEEK_MILLISECONDS, BOOST_PERK_WEEKLY_GIL } from '#utils/constants/boost-perk';
+import {
+	BOOST_PERK_PAYOUT_COORDINATOR_ID,
+	BOOST_PERK_REDEMPTION_CHANNEL_ID,
+	BOOST_PERK_WEEK_MILLISECONDS,
+	BOOST_PERK_WEEKLY_GIL
+} from '#utils/constants/boost-perk';
 import { container, type ChatInputCommand } from '@sapphire/framework';
 import { resolveKey } from '@sapphire/plugin-i18next';
 import { ChannelType, ContainerBuilder, MessageFlags, userMention, type ButtonInteraction } from 'discord.js';
@@ -52,8 +57,6 @@ export async function getBoostPerkRedeemStatus(interaction: BoostPerkInteraction
 		redeemableAmount: redeemableWeeks * BOOST_PERK_WEEKLY_GIL
 	};
 }
-
-const payoutCoordinatorId = '1258172662254141603'; // Ambi
 
 export async function runBoostPerkRedeemFlow(interaction: BoostPerkInteraction) {
 	const status = await getBoostPerkRedeemStatus(interaction);
@@ -116,7 +119,7 @@ export async function runBoostPerkRedeemFlow(interaction: BoostPerkInteraction) 
 
 	const threadSetupMessage = await resolveKey(interaction, 'commands/boost-perk:redeemThreadSetupMessage', {
 		redeemerMention: interaction.user.toString(),
-		payoutCoordinatorMention: userMention(payoutCoordinatorId)
+		payoutCoordinatorMention: userMention(BOOST_PERK_PAYOUT_COORDINATOR_ID)
 	});
 
 	await thread.send({
