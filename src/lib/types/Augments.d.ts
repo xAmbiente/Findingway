@@ -23,6 +23,8 @@ declare module '@sapphire/framework' {
 
 declare module '@skyra/env-utilities' {
 	interface Env {
+		BOOST_PERK_REDEMPTION_CHANNEL_ID: string;
+
 		DATABASE_URL: string;
 		DISCORD_TOKEN: string;
 
