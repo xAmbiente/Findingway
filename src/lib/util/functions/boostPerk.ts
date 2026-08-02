@@ -159,7 +159,7 @@ export async function runBoostPerkRedeemFlow(interaction: BoostPerkInteraction) 
 	});
 }
 
-function calculateFullWeeks(from: Date, to: Date): number {
+export function calculateFullWeeks(from: Date, to: Date): number {
 	const elapsedMilliseconds = Math.max(0, to.getTime() - from.getTime());
 	return Math.floor(elapsedMilliseconds / BOOST_PERK_WEEK_MILLISECONDS);
 }

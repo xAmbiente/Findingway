@@ -1,0 +1,13 @@
+{
+	"rootName": "check-boost-perks",
+	"rootDescription": "Shows a compact table of active server boosters and their saved boost perk payouts.",
+	"genericMemberError": "{{REDCROSS}} Sorry, but I couldn't verify your member data right now. Please try again later.",
+	"empty": "{{REDCROSS}} There are no active server boosters right now.",
+	"title": "**Server Booster Perk Overview**",
+	"subtitle": "Sorted by redeemable gil (weekly perk: **{{weeklyGil, number}}** gil).",
+	"tableHeader": "User | B | Last | R | Gil",
+	"neverRedeemed": "Never",
+	"lastRedeemedValue": "{{lastRedeemDate, relativeTime}}",
+	"tableRow": "{{mention}} | {{boostingWeeks}}w | {{lastRedeemed}} | {{redeemableWeeks}}w | {{amount, number}}",
+	"summary": "Total boosters: **{{count}}**"
+}
