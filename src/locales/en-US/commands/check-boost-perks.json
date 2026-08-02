@@ -5,9 +5,9 @@
 	"empty": "{{REDCROSS}} There are no active server boosters right now.",
 	"title": "**Server Booster Perk Overview**",
 	"subtitle": "Sorted by redeemable gil (weekly perk: **{{weeklyGil, number}}** gil).",
-	"tableHeader": "User | B | Last | R | Gil",
+	"tableHeader": "User | Username | B | Last | R | Gil",
 	"neverRedeemed": "Never",
 	"lastRedeemedValue": "{{lastRedeemDate, relativeTime}}",
-	"tableRow": "{{mention}} | {{boostingWeeks}}w | {{lastRedeemed}} | {{redeemableWeeks}}w | {{amount, number}}",
+	"tableRow": "{{mention}} | {{username}} | {{boostingWeeks}}w | {{lastRedeemed}} | {{redeemableWeeks}}w | {{amount, number}}",
 	"summary": "Total boosters: **{{count}}**"
 }

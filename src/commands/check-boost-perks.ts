@@ -69,6 +69,7 @@ export class SlashCommand extends Command {
 				return {
 					boostingWeeks,
 					lastRedeemDate,
+					username: member.user.username,
 					mention: userMention(member.id),
 					premiumSince,
 					redeemableAmount: redeemableWeeks * BOOST_PERK_WEEKLY_GIL,
@@ -114,6 +115,7 @@ export class SlashCommand extends Command {
 				boostingWeeks: row.boostingWeeks,
 				lastRedeemed,
 				mention: row.mention,
+				username: row.username,
 				redeemableWeeks: row.redeemableWeeks
 			});
 
