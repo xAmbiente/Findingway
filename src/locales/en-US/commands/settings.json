@@ -21,5 +21,6 @@
 	"disabled": "disabled",
 	"enabled": "enabled",
 	"toggleSuccessful": "{{GREENTICK}} Successfully {{state}} scraping for {{type}}.",
-	"toggleNoChannelConfigured": "{{REDCROSS}} No channel is configured for {{type}}. Please set a channel first."
+	"toggleNoChannelConfigured": "{{REDCROSS}} No channel is configured for {{type}}. Please set a channel first.",
+	"noSettings": "{{REDCROSS}} No settings are currently configured."
 }
