@@ -8,5 +8,9 @@
 		"**/.git/": true
 	},
 	"cSpell.words": ["findingway"],
-	"eslint.useFlatConfig": true
+	"eslint.useFlatConfig": true,
+	"chat.tools.terminal.autoApprove": {
+		"npx eslint": true,
+		"npx tsc": true,
+	}
 }
