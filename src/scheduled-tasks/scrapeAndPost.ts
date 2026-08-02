@@ -17,6 +17,13 @@ export class UserScheduledTask extends ScheduledTask {
 			return;
 		}
 
+		// If there are no channels configured for any server, skip (this is probably in development mode)
+		const channels = await this.container.prisma.channel.findMany();
+
+		if (channels.length === 0) {
+			return;
+		}
+
 		const timeOfScrape = Date.now();
 		const scrapeJson = await scrape();
 
