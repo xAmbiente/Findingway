@@ -1,4 +1,4 @@
-import type { ListingEntry } from '#lib/scraper/types';
+import type { ListingEntry } from '#lib/fetcher/types';
 
 export const rootFolder = new URL('../../../', import.meta.url);
 
@@ -49,7 +49,7 @@ export const enum ErrorIdentifiers {
 
 export interface PostMessagePayload {
 	entries: ListingEntry[];
-	timeOfScrape: number;
+	timeOfFetch: number;
 }
 
 export type Classes = 'Arcanist' | 'Archer' | 'Conjurer' | 'Gladiator' | 'Lancer' | 'Marauder' | 'Pugilist' | 'Rogue' | 'Thaumaturge';

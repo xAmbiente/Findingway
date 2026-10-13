@@ -1,12 +1,12 @@
+import type { Party, PartyRoles } from '#lib/fetcher/types';
 import { ChannelType } from '#lib/generated/prisma-client/enums';
-import type { Party } from '#lib/scraper/types';
 import type { PostMessagePayload } from '#lib/util/constants';
 import { FindingwayEmojis } from '#utils/emojis';
 import { resolveKey } from '@sapphire/plugin-i18next';
 import { roundNumber } from '@sapphire/utilities';
 import { bold, codeBlock, ContainerBuilder, time, TimestampStyles } from 'discord.js';
 
-export async function buildPfPost({ entries, timeOfScrape }: PostMessagePayload, type: ChannelType): Promise<ContainerBuilder> {
+export async function buildPfPost({ entries, timeOfFetch }: PostMessagePayload, type: ChannelType): Promise<ContainerBuilder> {
 	const container = new ContainerBuilder();
 	container.setAccentColor(getAccentColour(type));
 
@@ -17,7 +17,7 @@ export async function buildPfPost({ entries, timeOfScrape }: PostMessagePayload,
 		(textDisplay) => textDisplay.setContent(bold(`${title} ${pfs} [Light]`)),
 		(textDisplay) =>
 			textDisplay.setContent(
-				`Found ${bold(entries.length.toString())} active listings • ${time(roundNumber(timeOfScrape / 1_000), TimestampStyles.RelativeTime)}`
+				`Found ${bold(entries.length.toString())} active listings • ${time(roundNumber(timeOfFetch / 1_000), TimestampStyles.RelativeTime)}`
 			)
 	);
 
@@ -35,7 +35,7 @@ export async function buildPfPost({ entries, timeOfScrape }: PostMessagePayload,
 						//
 						bold(entry.creator),
 						bold(minIlvl),
-						bold(entry.pfTags ?? '')
+						bold(entry.tags.join(', '))
 					].join('\t')
 				),
 			(textDisplay) =>
@@ -61,11 +61,11 @@ export async function buildPfPost({ entries, timeOfScrape }: PostMessagePayload,
 function buildPartyListing(party: Party[]): string {
 	return party
 		.map((slot) => {
-			if (slot.filled && slot.title) {
-				return partyTitlesToEmojis(slot.title);
+			if (slot.filled && slot.job) {
+				return partyTitlesToEmojis(slot.job);
 			}
 
-			return partyTypesToEmojis(slot.type);
+			return partyTypesToEmojis(slot.roles);
 		})
 		.join('');
 }
@@ -142,25 +142,30 @@ function partyTitlesToEmojis(title: string): string {
 	}
 }
 
-function partyTypesToEmojis(type: string): string {
-	switch (type) {
-		case 'dps':
-			return FindingwayEmojis.DPS;
-		case 'healer':
-			return FindingwayEmojis.Healer;
-		case 'healerDps':
-			return FindingwayEmojis.HealerDPS;
-		case 'tank':
-			return FindingwayEmojis.Tank;
-		case 'tankDps':
-			return FindingwayEmojis.TankDPS;
-		case 'tankHealer':
-			return FindingwayEmojis.TankHealer;
-		case 'tankHealerDps':
-			return FindingwayEmojis.TankHealerDps;
-		default:
-			return '';
+function partyTypesToEmojis(roles: PartyRoles[]): string {
+	if (roles.length === 3 && roles.includes('dps') && roles.includes('healer') && roles.includes('tank')) return FindingwayEmojis.TankHealerDps;
+
+	if (roles.length === 1) {
+		const role = roles[0];
+		switch (role) {
+			case 'dps':
+				return FindingwayEmojis.DPS;
+			case 'healer':
+				return FindingwayEmojis.Healer;
+			case 'tank':
+				return FindingwayEmojis.Tank;
+			default:
+				return '';
+		}
 	}
+
+	if (roles.length === 2) {
+		if (roles.includes('dps') && roles.includes('healer')) return FindingwayEmojis.HealerDPS;
+		if (roles.includes('dps') && roles.includes('tank')) return FindingwayEmojis.TankDPS;
+		if (roles.includes('healer') && roles.includes('tank')) return FindingwayEmojis.TankHealer;
+	}
+
+	return '';
 }
 
 function getAccentColour(type: ChannelType): number {

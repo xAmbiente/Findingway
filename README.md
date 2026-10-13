@@ -7,15 +7,15 @@ Findingway is a Discord bot that watches [XIVPF](https://xivpf.com) for Final Fa
 posts them into configured Discord channels. It keeps a single message per channel updated in place, so the listings
 stay current without flooding chat.
 
-> [!NOTE]
-> The bot scrapes XIVPF with Playwright, stores channel configuration in PostgreSQL through Prisma, and uses
-> Redis-backed scheduled tasks for periodic updates.
+> [!NOTE] The bot uses the API exposed by [better-xivpf](https://better-xivpf.fly.dev), stores channel configuration in
+> PostgreSQL through Prisma, and uses Redis-backed scheduled tasks for periodic updates.
 
 ## What It Does
 
-- Scrapes XIVPF listings for the supported ultimate duties and mercantile-style posts
+- Fetches XIVPF listings for the supported ultimate duties and mercantile-style posts through the
+  [better-xivpf](https://better-xivpf.fly.dev) API
 - Posts results as rich Discord components and edits the same message on each refresh
-- Runs automatically every 3 minutes, with a manual `/scrape` fallback
+- Runs automatically every 3 minutes, with a manual `/fetch` fallback
 - Lets guilds configure which channel receives which duty feed through `/settings`
 - Handles deleted or missing messages by recreating them and storing the new message ID
 
@@ -36,8 +36,7 @@ The mercantile feed currently matches these keywords: `merc`, `mercenary`, `carr
 - Redis
 - A Discord application with a bot token
 
-> [!IMPORTANT]
-> The bot expects the following environment variables at runtime:
+> [!IMPORTANT] The bot expects the following environment variables at runtime:
 >
 > - `DISCORD_TOKEN`
 > - `DATABASE_URL`
@@ -88,7 +87,7 @@ yarn dev
 ## Commands
 
 - `/info` shows bot statistics, uptime, and server usage. Owners also get a server breakdown button.
-- `/scrape` triggers an immediate XIVPF scrape and refresh cycle.
+- `/fetch` triggers an immediate XIVPF fetch and refresh cycle.
 - `/settings set` assigns a duty feed to a channel.
 - `/settings toggle` enables or disables an existing duty feed for the guild.
 - `/settings show` displays the current channel mappings.
@@ -96,8 +95,9 @@ yarn dev
 ## How It Works
 
 1. A scheduled task runs every 3 minutes.
-2. The scraper opens XIVPF in Playwright, filters the listing page, and parses the visible PF entries.
-3. Scraped listings are emitted as typed events for each feed.
+2. The fetcher fetches listings from the [better-xivpf](https://better-xivpf.fly.dev) API, filters the results, and
+   parses the visible PF entries.
+3. Fetched listings are emitted as typed events for each feed.
 4. Listeners build a Discord component payload and edit the existing message when possible.
 5. Channel IDs and message IDs are persisted in PostgreSQL so updates survive restarts.
 
@@ -105,8 +105,7 @@ yarn dev
 
 ### Docker
 
-`docker-compose.yml` starts PostgreSQL, Redis, and the bot container together. The Dockerfile installs Chromium for
-Playwright, so the bot can scrape XIVPF inside the container without extra browser setup.
+`docker-compose.yml` starts PostgreSQL, Redis, and the bot container together.
 
 ```bash
 docker compose up --build
@@ -122,8 +121,8 @@ docker compose up --build
 
 - `src/commands/` - slash command implementations
 - `src/listeners/` - event handlers for posting, errors, and shard lifecycle events
-- `src/scheduled-tasks/` - the periodic scrape job
-- `src/lib/` - scraper, helpers, setup, generated Prisma client, and utilities
+- `src/scheduled-tasks/` - the periodic fetch job
+- `src/lib/` - fetcher, helpers, setup, generated Prisma client, and utilities
 - `prisma/` - Prisma schema and migration history
 - `assets/` - emoji and emote assets used by the bot
 

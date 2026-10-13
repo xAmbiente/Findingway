@@ -1,0 +1,6 @@
+{
+	"rootName": "fetch",
+	"rootDescription": "Triggers an immediate fetch.",
+	"started": "{{GREENTICK}} Fetching started!",
+	"success": "{{GREENTICK}} Fetching completed successfully!"
+}

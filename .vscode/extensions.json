@@ -7,7 +7,6 @@
 		"esbenp.prettier-vscode",
 		"prisma.prisma",
 		"pflannery.vscode-versionlens",
-		"redhat.vscode-yaml",
-		"ms-playwright.playwright"
+		"redhat.vscode-yaml"
 	]
 }

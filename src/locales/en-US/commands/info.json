@@ -1,7 +1,7 @@
 {
 	"rootName": "info",
 	"rootDescription": "Provides information about Findingway.",
-	"content": "Findingway is a Discord bot that scrapes xivlisting.com and cross posts them to Discord.\nIt is built with the {{sapphire}} and {{discordjs}}.",
+	"content": "Findingway is a Discord bot that fetches https://better-xivpf.fly.dev and cross posts them to Discord.\nIt is built with the {{sapphire}} and {{discordjs}}.",
 	"fields": {
 		"stats": {
 			"users": "Users",

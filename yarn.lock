@@ -664,6 +664,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@jridgewell/sourcemap-codec@npm:^1.6.0":
+  version: 1.6.0
+  resolution: "@jridgewell/sourcemap-codec@npm:1.6.0"
+  checksum: 10/eb53fbf7eb4051302a599d6b91425f381168b2856f321336fb00852cea1e0c1904af2610c157b1535e94a61caa98f0bd068d1d0394dd46adf9e9c45c4e11af91
+  languageName: node
+  linkType: hard
+
 "@jridgewell/trace-mapping@npm:^0.3.24, @jridgewell/trace-mapping@npm:^0.3.28":
   version: 0.3.31
   resolution: "@jridgewell/trace-mapping@npm:0.3.31"
@@ -1088,18 +1095,6 @@ __metadata:
   version: 0.3.6
   resolution: "@pkgr/core@npm:0.3.6"
   checksum: 10/29082aa13d36f13fc41cdc64cb1feb36b630de0d6ebde84e2ff68e3d7a7f1dce4462cca91f76176c46e50bbca6b1e7f1fd9cf907af12d5d70da83bc981ca4ccf
-  languageName: node
-  linkType: hard
-
-"@playwright/mcp@npm:^0.0.78":
-  version: 0.0.78
-  resolution: "@playwright/mcp@npm:0.0.78"
-  dependencies:
-    playwright: "npm:1.62.0-alpha-1783623505000"
-    playwright-core: "npm:1.62.0-alpha-1783623505000"
-  bin:
-    playwright-mcp: cli.js
-  checksum: 10/f5bd992cd125fa7b038ef22faf52f3b12cc1fe0729026d4f7b348a10252ea090a7a869d0a6700beab6cafa142652ab3195c320de0b1b3c022c334424aebdedc7
   languageName: node
   linkType: hard
 
@@ -1690,6 +1685,13 @@ __metadata:
   version: 1.2.0
   resolution: "@sapphire/duration@npm:1.2.0"
   checksum: 10/70fdb4f699ff5ecdccb25ba72a5917956195e9d377dd2dc7affaa0ec1e1145d1f5c3f79e595ac0f6edcec2a78fdc14acc5fdc591b1559f17df69532eb428967b
+  languageName: node
+  linkType: hard
+
+"@sapphire/fetch@npm:^3.0.5":
+  version: 3.0.5
+  resolution: "@sapphire/fetch@npm:3.0.5"
+  checksum: 10/c9fdcf2785dc26216836344967175d3f993fb9b11b225e55ceefec6a77d3747ecf684ed02fd9c8fb4826fbc4fc8edf541309506686c4bbd1569626c389a2541f
   languageName: node
   linkType: hard
 
@@ -5101,11 +5103,11 @@ __metadata:
   resolution: "findingway@workspace:."
   dependencies:
     "@favware/discord-application-emojis-manager": "npm:^1.1.1"
-    "@playwright/mcp": "npm:^0.0.78"
     "@prisma/adapter-pg": "npm:^7.8.0"
     "@prisma/client": "npm:^7.8.0"
     "@sapphire/decorators": "npm:^6.2.0"
     "@sapphire/discord.js-utilities": "npm:^7.3.3"
+    "@sapphire/fetch": "npm:^3.0.5"
     "@sapphire/framework": "npm:^5.5.0"
     "@sapphire/plugin-i18next": "npm:^8.0.0"
     "@sapphire/plugin-logger": "npm:^4.1.0"
@@ -5133,13 +5135,13 @@ __metadata:
     gradient-string: "npm:^3.0.0"
     i18next: "npm:^26.3.6"
     lint-staged: "npm:^17.0.8"
-    playwright: "npm:^1.61.1"
     prettier: "npm:^3.9.5"
     prettier-plugin-prisma: "npm:^5.0.0"
     prisma: "npm:^7.8.0"
     rimraf: "npm:^6.1.3"
     tsdown: "npm:^0.22.5"
     typescript: "npm:^6.0.3"
+    unplugin-replace: "npm:^0.9.1"
     unrun: "npm:^0.3.1"
     utf-8-validate: "npm:^6.0.6"
     ws: "npm:^8.21.0"
@@ -5179,25 +5181,6 @@ __metadata:
     cross-spawn: "npm:^7.0.6"
     signal-exit: "npm:^4.0.1"
   checksum: 10/427b33f997a98073c0424e5c07169264a62cda806d8d2ded159b5b903fdfc8f0a1457e06b5fc35506497acb3f1e353f025edee796300209ac6231e80edece835
-  languageName: node
-  linkType: hard
-
-"fsevents@npm:2.3.2":
-  version: 2.3.2
-  resolution: "fsevents@npm:2.3.2"
-  dependencies:
-    node-gyp: "npm:latest"
-  checksum: 10/6b5b6f5692372446ff81cf9501c76e3e0459a4852b3b5f1fc72c103198c125a6b8c72f5f166bdd76ffb2fca261e7f6ee5565daf80dca6e571e55bcc589cc1256
-  conditions: os=darwin
-  languageName: node
-  linkType: hard
-
-"fsevents@patch:fsevents@npm%3A2.3.2#optional!builtin<compat/fsevents>":
-  version: 2.3.2
-  resolution: "fsevents@patch:fsevents@npm%3A2.3.2#optional!builtin<compat/fsevents>::version=2.3.2&hash=df0bf1"
-  dependencies:
-    node-gyp: "npm:latest"
-  conditions: os=darwin
   languageName: node
   linkType: hard
 
@@ -6130,6 +6113,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"js-tokens@npm:^10.0.0":
+  version: 10.0.0
+  resolution: "js-tokens@npm:10.0.0"
+  checksum: 10/88f536ec89f076fc230d29df255b3c55531237669d746d1868fca716b1e3f5f2e4abf8e5b8701903216e3f00d2dc3918d078b35da87772d433ab6a513c3bf76d
+  languageName: node
+  linkType: hard
+
 "js-tokens@npm:^3.0.0 || ^4.0.0, js-tokens@npm:^4.0.0":
   version: 4.0.0
   resolution: "js-tokens@npm:4.0.0"
@@ -6429,6 +6419,15 @@ __metadata:
   version: 1.13.0
   resolution: "magic-bytes.js@npm:1.13.0"
   checksum: 10/d73612258d7edcd5af6f4ee93b89945b4c50e1882b8b37a894e58b8bd6cb2fc82219a8e5107a5be5f9c6448822ef270ab5b536fa3d785a72aa49eb4c9b3491cb
+  languageName: node
+  linkType: hard
+
+"magic-string@npm:^1.0.0":
+  version: 1.4.3
+  resolution: "magic-string@npm:1.4.3"
+  dependencies:
+    "@jridgewell/sourcemap-codec": "npm:^1.6.0"
+  checksum: 10/8942d4afec7855661d697e48f6f48f0113770878f29e25cdc558ecfd2493ebe5620e18ebee5770e8e5b0afdf72f60330166d1bb59e70eecced712fcf29860ea4
   languageName: node
   linkType: hard
 
@@ -7634,6 +7633,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"picomatch@npm:^4.0.7":
+  version: 4.0.7
+  resolution: "picomatch@npm:4.0.7"
+  checksum: 10/66e1df34bc39c72fa3756be4069f7887ea3e35e94bba1c3f6167763007698cb04b8a0a365161d186fda6e9571a2d3efb606b2966eb6a7dea6252911224dc2f48
+  languageName: node
+  linkType: hard
+
 "pkg-types@npm:^2.3.0":
   version: 2.3.1
   resolution: "pkg-types@npm:2.3.1"
@@ -7642,54 +7648,6 @@ __metadata:
     exsolve: "npm:^1.0.8"
     pathe: "npm:^2.0.3"
   checksum: 10/59d892b5e18b319a66e745214b66bc68a77c6eccc4bf955582775aa393f79a6a29495184233d71e10a986e9346e44d72f5957d2d0e7104cb0d6ef43b4e92a969
-  languageName: node
-  linkType: hard
-
-"playwright-core@npm:1.61.1":
-  version: 1.61.1
-  resolution: "playwright-core@npm:1.61.1"
-  bin:
-    playwright-core: cli.js
-  checksum: 10/b0e7b1d4de7ca6c1a57eb88f1709609a8b7637092f149e703d84d6c8e01835992ec5ca26b86f1a32fb5f5bc1aad042c3ae27311e131b3dda8a27824a543eb3c7
-  languageName: node
-  linkType: hard
-
-"playwright-core@npm:1.62.0-alpha-1783623505000":
-  version: 1.62.0-alpha-1783623505000
-  resolution: "playwright-core@npm:1.62.0-alpha-1783623505000"
-  bin:
-    playwright-core: cli.js
-  checksum: 10/82133f41062918c25d0fc8d17f9e5d327ce766f49125f1e916c01ff88c18e5a104c728963a381a9cde0afa193d43876aceebb33620eb9aa3c65612da20857a47
-  languageName: node
-  linkType: hard
-
-"playwright@npm:1.62.0-alpha-1783623505000":
-  version: 1.62.0-alpha-1783623505000
-  resolution: "playwright@npm:1.62.0-alpha-1783623505000"
-  dependencies:
-    fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.62.0-alpha-1783623505000"
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  bin:
-    playwright: cli.js
-  checksum: 10/7159fd2ab87312d7dbaae0393355a25e1db3aa5ca65a4309704a559fcf12747d453e2592e854637e67178e4343af9012423addb1293d478b0fc0db98cef37088
-  languageName: node
-  linkType: hard
-
-"playwright@npm:^1.61.1":
-  version: 1.61.1
-  resolution: "playwright@npm:1.61.1"
-  dependencies:
-    fsevents: "npm:2.3.2"
-    playwright-core: "npm:1.61.1"
-  dependenciesMeta:
-    fsevents:
-      optional: true
-  bin:
-    playwright: cli.js
-  checksum: 10/0cd1a8a7e106202e785450763973bf326d4aa112ed195bbd78b17af43dcfd12e29bc8204ae61c88f748dd0f2bdf69a7827bc3bbf8c1ec4c71b8e35586e05f13c
   languageName: node
   linkType: hard
 
@@ -8152,7 +8110,7 @@ __metadata:
 
 "resolve@patch:resolve@npm%3A^2.0.0-next.5#optional!builtin<compat/resolve>":
   version: 2.0.0-next.7
-  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.7#optional!builtin<compat/resolve>::version=2.0.0-next.7&hash=c3c19d"
+  resolution: "resolve@patch:resolve@npm%3A2.0.0-next.7#optional!builtin<compat/resolve>::version=2.0.0-next.7&hash=9bd1a5"
   dependencies:
     es-errors: "npm:^1.3.0"
     is-core-module: "npm:^2.16.2"
@@ -8162,13 +8120,13 @@ __metadata:
     supports-preserve-symlinks-flag: "npm:^1.0.0"
   bin:
     resolve: bin/resolve
-  checksum: 10/2c6dd4194c8aa900db299020fcad253239c670ea82a65c8387f1d2885e8dcf6742b64c439e3c811e046a5252eba94f2092b7867e34b7f895e733be48d575192b
+  checksum: 10/b0bb50f5b12e0fb87baf9692d67a4bbcbfb58cb584d9c68973b12f7b351d9c61e64828a9e08073378b61b26fc3199b0a42d88056fcbe76963320e977642cf1b2
   languageName: node
   linkType: hard
 
 "resolve@patch:resolve@npm%3A~1.22.2#optional!builtin<compat/resolve>":
   version: 1.22.12
-  resolution: "resolve@patch:resolve@npm%3A1.22.12#optional!builtin<compat/resolve>::version=1.22.12&hash=c3c19d"
+  resolution: "resolve@patch:resolve@npm%3A1.22.12#optional!builtin<compat/resolve>::version=1.22.12&hash=9bd1a5"
   dependencies:
     es-errors: "npm:^1.3.0"
     is-core-module: "npm:^2.16.1"
@@ -8176,7 +8134,7 @@ __metadata:
     supports-preserve-symlinks-flag: "npm:^1.0.0"
   bin:
     resolve: bin/resolve
-  checksum: 10/f80ad2c2b6820331cbe079198a184ffce322cfeca140065118066276bc08b03d5fa2c1ce652aeb584ec74050d1f656f46f034cc0dd9300452c5ab7866907f8c0
+  checksum: 10/7c0ee8a1bd6126d7adde06b8cbba7578f6b791560200cd235b696106b9803038fcf680f0273b350a4e9476de1a5194a9a77827cb08e10d80bea38f4d63b1d254
   languageName: node
   linkType: hard
 
@@ -8249,6 +8207,20 @@ __metadata:
     vue-tsc:
       optional: true
   checksum: 10/74be7c95f2e2e2129daf661387d1c6c14cb409408f419b4b98f959f2b06d557cf9e6e2151b52d7bac2fe6220c1e8ea486a2ca5091a048253eae26a8f335b8e09
+  languageName: node
+  linkType: hard
+
+"rolldown-string@npm:^0.3.1":
+  version: 0.3.1
+  resolution: "rolldown-string@npm:0.3.1"
+  dependencies:
+    magic-string: "npm:^1.0.0"
+  peerDependencies:
+    rolldown: "*"
+  peerDependenciesMeta:
+    rolldown:
+      optional: true
+  checksum: 10/de5980da707b84272c0356ff633502bcbbb3dc947fb2d504c248ad2772d78f45bf6e5181bfeeeee15d8367e2683c5949f865911f8981103c1f8502f3b44157de
   languageName: node
   linkType: hard
 
@@ -9381,6 +9353,60 @@ __metadata:
   languageName: node
   linkType: hard
 
+"unplugin-replace@npm:^0.9.1":
+  version: 0.9.1
+  resolution: "unplugin-replace@npm:0.9.1"
+  dependencies:
+    js-tokens: "npm:^10.0.0"
+    rolldown-string: "npm:^0.3.1"
+    unplugin: "npm:^3.4.0"
+  checksum: 10/50008ddbb3de12246e4a41d2ebb720142b6c92730e7f38eb2a50a789cd034273dcaab4ed148184e9f1f301f9fe31629b00805c13acc1e65b969bb4b6658ff845
+  languageName: node
+  linkType: hard
+
+"unplugin@npm:^3.4.0":
+  version: 3.4.0
+  resolution: "unplugin@npm:3.4.0"
+  dependencies:
+    "@jridgewell/remapping": "npm:^2.3.5"
+    picomatch: "npm:^4.0.7"
+    webpack-virtual-modules: "npm:^0.6.2"
+  peerDependencies:
+    "@farmfe/core": "*"
+    "@rsbuild/core": "*"
+    "@rspack/core": "*"
+    bun-types-no-globals: "*"
+    esbuild: "*"
+    rolldown: "*"
+    rollup: "*"
+    unloader: "*"
+    vite: "*"
+    webpack: "*"
+  peerDependenciesMeta:
+    "@farmfe/core":
+      optional: true
+    "@rsbuild/core":
+      optional: true
+    "@rspack/core":
+      optional: true
+    bun-types-no-globals:
+      optional: true
+    esbuild:
+      optional: true
+    rolldown:
+      optional: true
+    rollup:
+      optional: true
+    unloader:
+      optional: true
+    vite:
+      optional: true
+    webpack:
+      optional: true
+  checksum: 10/311e527f69df37be4ee254ae8d718a8b759bcb60bd0feeda5253767d154c03f7323310ab20d381ff52a63f724f9e98f73bd4e0beb5c7df101a433c5f9e667273
+  languageName: node
+  linkType: hard
+
 "unrs-resolver@npm:^1.7.11, unrs-resolver@npm:^1.9.2":
   version: 1.12.2
   resolution: "unrs-resolver@npm:1.12.2"
@@ -9627,6 +9653,13 @@ __metadata:
   version: 3.0.1
   resolution: "walk-up-path@npm:3.0.1"
   checksum: 10/9ffca02fe30fb65f6db531260582988c5e766f4c739cf86a6109380a7f791236b5d0b92b1dce37a6f73e22dca6bc9d93bf3700413e16251b2bd6bbd1ca2be316
+  languageName: node
+  linkType: hard
+
+"webpack-virtual-modules@npm:^0.6.2":
+  version: 0.6.2
+  resolution: "webpack-virtual-modules@npm:0.6.2"
+  checksum: 10/d9a0d035f7ec0c7f1055aaf88bfe48b7f96458043916a1b2926d9012fd61de3810a6b768e31a8cd4b3c84a9b6d55824361a9dd20aaf9f5ccfb6f017af216a178
   languageName: node
   linkType: hard
 
